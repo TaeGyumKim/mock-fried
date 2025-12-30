@@ -1,6 +1,8 @@
 import { defineEventHandler, createError } from 'h3'
 import { useRuntimeConfig } from '#imports'
 import { readFileSync, existsSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import { resolve } from 'pathe'
 import type {
   ApiSchema,
   OpenApiSchema,
@@ -10,7 +12,105 @@ import type {
   RpcServiceSchema,
   RpcMethodSchema,
   RpcFieldSchema,
+  OpenApiClientConfig,
+  ParsedClientPackage,
 } from '../../../types'
+import { getClientPackage } from '../utils/client-parser'
+
+// ESM 환경에서 require.resolve 사용을 위한 helper
+const _require = createRequire(import.meta.url)
+
+/**
+ * Client package 설정에서 OpenAPI 스키마 메타데이터 추출
+ */
+function parseClientPackageSchema(config: OpenApiClientConfig): OpenApiSchema | undefined {
+  try {
+    // 패키지 경로 resolve (ESM 환경에서도 동작하도록 createRequire 사용)
+    const packagePath = _require.resolve(`${config.package}/package.json`)
+    const packageRoot = packagePath.replace('/package.json', '').replace('\\package.json', '')
+
+    const clientPackage: ParsedClientPackage = getClientPackage(packageRoot, config)
+
+    // API 클래스별로 그룹화
+    const apiGroups = new Map<string, typeof clientPackage.endpoints>()
+    for (const endpoint of clientPackage.endpoints) {
+      const apiName = endpoint.apiClassName || 'default'
+      if (!apiGroups.has(apiName)) {
+        apiGroups.set(apiName, [])
+      }
+      apiGroups.get(apiName)!.push(endpoint)
+    }
+
+    // ParsedEndpoint를 OpenApiPathItem으로 변환
+    const pathItems: OpenApiPathItem[] = clientPackage.endpoints.map((endpoint) => {
+      const parameters: OpenApiParameter[] = [
+        ...(endpoint.pathParams || []).map(p => ({
+          name: p.name,
+          in: 'path' as const,
+          required: p.required,
+          schema: { type: p.type },
+        })),
+        ...(endpoint.queryParams || []).map(p => ({
+          name: p.name,
+          in: 'query' as const,
+          required: p.required,
+          schema: { type: p.type },
+        })),
+      ]
+
+      return {
+        path: endpoint.path,
+        method: endpoint.method,
+        operationId: endpoint.operationId,
+        summary: endpoint.summary,
+        tags: endpoint.apiClassName ? [endpoint.apiClassName] : undefined,
+        parameters: parameters.length > 0 ? parameters : undefined,
+        requestBody: endpoint.requestBodyType
+          ? {
+              content: {
+                'application/json': {
+                  schema: { $ref: `#/components/schemas/${endpoint.requestBodyType}` },
+                },
+              },
+            }
+          : undefined,
+        responses: {
+          200: {
+            description: 'Success',
+            content: endpoint.responseType
+              ? {
+                  'application/json': {
+                    schema: { $ref: `#/components/schemas/${endpoint.responseType}` },
+                  },
+                }
+              : undefined,
+          },
+        },
+      }
+    })
+
+    return {
+      info: {
+        title: clientPackage.info.title || clientPackage.info.name || 'Unknown API',
+        version: clientPackage.info.version || '1.0.0',
+        description: `Generated from ${config.package}`,
+      },
+      paths: pathItems,
+      // 추가 메타데이터: 모델 수, API 클래스 목록
+      _meta: {
+        source: 'client-package',
+        package: config.package,
+        apiClasses: Array.from(apiGroups.keys()),
+        modelCount: clientPackage.models.size,
+        endpointCount: clientPackage.endpoints.length,
+      },
+    }
+  }
+  catch (error) {
+    console.error('[mock-fried] Failed to parse client package:', error)
+    return undefined
+  }
+}
 
 // 캐시
 let cachedSchema: ApiSchema | null = null
@@ -226,7 +326,12 @@ function getProtoTypeName(typeNum: number, typeName?: string): string {
  */
 export default defineEventHandler(async () => {
   const config = useRuntimeConfig()
-  const mockConfig = config.mock as { openapiPath?: string, protoPath?: string }
+  const mockConfig = config.mock as {
+    openapiPath?: string
+    protoPath?: string
+    clientPackageConfig?: OpenApiClientConfig
+    clientPackagePath?: string
+  }
 
   // 캐시 확인
   if (cachedSchema) {
@@ -235,8 +340,83 @@ export default defineEventHandler(async () => {
 
   const schema: ApiSchema = {}
 
-  // OpenAPI 스펙 파싱
-  if (mockConfig.openapiPath) {
+  // OpenAPI 스펙 파싱 - client package 또는 spec 파일
+  if (mockConfig.clientPackageConfig?.package) {
+    // Client package 방식 (openapi.package 설정)
+    const openapi = parseClientPackageSchema(mockConfig.clientPackageConfig)
+    if (openapi) {
+      schema.openapi = openapi
+    }
+  }
+  else if (mockConfig.clientPackagePath) {
+    // Client package 방식 - clientPackagePath만 있는 경우 (fallback)
+    const clientPkg = getClientPackage(mockConfig.clientPackagePath)
+
+    // API 클래스별로 그룹화
+    const apiGroups = new Map<string, string[]>()
+    for (const endpoint of clientPkg.endpoints) {
+      const apiName = endpoint.apiClassName || 'default'
+      if (!apiGroups.has(apiName)) {
+        apiGroups.set(apiName, [])
+      }
+    }
+
+    // ParsedEndpoint를 OpenApiPathItem으로 변환
+    const pathItems: OpenApiPathItem[] = clientPkg.endpoints.map((endpoint) => {
+      const parameters: OpenApiParameter[] = [
+        ...(endpoint.pathParams || []).map(p => ({
+          name: p.name,
+          in: 'path' as const,
+          required: p.required,
+          schema: { type: p.type },
+        })),
+        ...(endpoint.queryParams || []).map(p => ({
+          name: p.name,
+          in: 'query' as const,
+          required: p.required,
+          schema: { type: p.type },
+        })),
+      ]
+
+      return {
+        path: endpoint.path,
+        method: endpoint.method,
+        operationId: endpoint.operationId,
+        summary: endpoint.summary,
+        tags: endpoint.apiClassName ? [endpoint.apiClassName] : undefined,
+        parameters: parameters.length > 0 ? parameters : undefined,
+        responses: {
+          200: {
+            description: 'Success',
+            content: endpoint.responseType
+              ? {
+                  'application/json': {
+                    schema: { $ref: `#/components/schemas/${endpoint.responseType}` },
+                  },
+                }
+              : undefined,
+          },
+        },
+      }
+    })
+
+    schema.openapi = {
+      info: {
+        title: clientPkg.info.title || clientPkg.info.name || 'Unknown API',
+        version: clientPkg.info.version || '1.0.0',
+        description: `Generated from client package`,
+      },
+      paths: pathItems,
+      _meta: {
+        source: 'client-package',
+        apiClasses: Array.from(apiGroups.keys()),
+        modelCount: clientPkg.models.size,
+        endpointCount: clientPkg.endpoints.length,
+      },
+    }
+  }
+  else if (mockConfig.openapiPath) {
+    // YAML/JSON spec 파일 방식
     const openapi = parseOpenApiSpec(mockConfig.openapiPath)
     if (openapi) {
       schema.openapi = openapi

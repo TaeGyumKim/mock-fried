@@ -371,6 +371,14 @@ export interface OpenApiSchema {
     description?: string
   }
   paths: OpenApiPathItem[]
+  /** Client package 방식 사용 시 추가 메타데이터 */
+  _meta?: {
+    source: 'client-package' | 'spec-file'
+    package?: string
+    apiClasses?: string[]
+    modelCount?: number
+    endpointCount?: number
+  }
 }
 
 /**
