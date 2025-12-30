@@ -4,7 +4,7 @@ import * as protoLoader from '@grpc/proto-loader'
 import * as grpc from '@grpc/grpc-js'
 import { readdirSync, statSync } from 'node:fs'
 import { join, extname } from 'pathe'
-import { generateMockMessage, deriveSeedFromRequest } from '../utils/mock-generator'
+import { generateMockMessage, deriveSeedFromRequest } from '../utils/mock'
 
 // Proto 캐시
 interface ProtoCache {

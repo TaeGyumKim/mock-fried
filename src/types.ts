@@ -1,4 +1,183 @@
 /**
+ * Pagination 설정
+ */
+export interface MockPaginationConfig {
+  /**
+   * 캐싱 활성화
+   * @default true
+   */
+  cache?: boolean
+
+  /**
+   * 캐시 TTL (밀리초)
+   * @default 1800000 (30분)
+   */
+  cacheTTL?: number
+
+  /**
+   * 기본 총 아이템 수
+   * @default 100
+   */
+  defaultTotal?: number
+
+  /**
+   * 기본 페이지 크기
+   * @default 20
+   */
+  defaultLimit?: number
+
+  /**
+   * 응답에 snapshotId 포함 여부
+   * @default false
+   */
+  includeSnapshotId?: boolean
+}
+
+/**
+ * Cursor 설정
+ */
+export interface MockCursorConfig {
+  /**
+   * 만료 활성화
+   * @default true
+   */
+  enableExpiry?: boolean
+
+  /**
+   * Cursor TTL (밀리초)
+   * @default 3600000 (1시간)
+   */
+  cursorTTL?: number
+
+  /**
+   * 정렬 정보 포함 여부
+   * @default false
+   */
+  includeSortInfo?: boolean
+}
+
+/**
+ * 응답 포맷 타입
+ * - 'auto': 기존 동작 유지 (스키마 기반 자동)
+ * - 'standardized': 표준화된 응답 형식
+ */
+export type MockResponseFormat = 'auto' | 'standardized'
+
+/**
+ * ID 생성 포맷
+ * - 'sequential': 'id-1', 'id-2', ... (prefix + index)
+ * - 'uuid': 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
+ * - 'ulid': '01ARZ3NDEKTSV4RRFFQ69G5FAV'
+ * - 'nanoid': 'V1StGXR8_Z5jdHi6B-myT' (21자)
+ * - 'numeric': 1, 2, 3, ...
+ * - 'hash': seed 기반 해시 문자열
+ */
+export type MockIdFormat = 'sequential' | 'uuid' | 'ulid' | 'nanoid' | 'numeric' | 'hash'
+
+/**
+ * 필드별 세부 ID 설정
+ */
+export interface MockIdFieldConfig {
+  /** 생성 포맷 */
+  format: MockIdFormat
+  /** sequential/numeric용 prefix */
+  prefix?: string
+  /** 고정값 (테스트용) */
+  fixedValue?: string | number
+}
+
+/**
+ * ID 필드 생성 설정
+ */
+export interface MockIdConfig {
+  /**
+   * ID 필드로 인식할 필드명 패턴 (정확히 일치)
+   * @default ['id', 'uuid', 'key', '_id']
+   */
+  fieldPatterns?: string[]
+
+  /**
+   * ID 필드 suffix 패턴 (끝나는 문자열)
+   * @default ['_id', 'Id', '_key', 'Key', '_uuid', 'Uuid']
+   */
+  fieldSuffixes?: string[]
+
+  /**
+   * 기본 ID 생성 포맷
+   * @default 'uuid'
+   */
+  format?: MockIdFormat
+
+  /**
+   * sequential/numeric 포맷에서 사용할 prefix
+   * @default 'id-' (sequential), '' (numeric)
+   */
+  prefix?: string
+
+  /**
+   * 특정 필드명에 대한 포맷 오버라이드
+   * @example { 'machine_id': 'uuid', 'order_number': 'numeric' }
+   */
+  fieldOverrides?: Record<string, MockIdFormat | MockIdFieldConfig>
+}
+
+/**
+ * Mock 데이터 생성 설정
+ */
+export interface MockDataGenerationConfig {
+  /**
+   * Optional 필드에 값이 생성될 확률 (0-1)
+   * @default 0.7
+   */
+  nullableRate?: number
+
+  /**
+   * 배열 필드의 최소 아이템 수
+   * @default 1
+   */
+  arrayMinLength?: number
+
+  /**
+   * 배열 필드의 최대 아이템 수
+   * @default 5
+   */
+  arrayMaxLength?: number
+
+  /**
+   * 중첩 객체 배열의 최대 아이템 수
+   * @default 3
+   */
+  nestedArrayMaxLength?: number
+
+  /**
+   * 문자열 필드 최대 길이
+   * @default 100
+   */
+  stringMaxLength?: number
+
+  /**
+   * 숫자 범위 설정
+   */
+  numberRange?: {
+    min?: number // default: 0
+    max?: number // default: 1000
+  }
+
+  /**
+   * 날짜 범위 설정 (현재 기준 일 수)
+   */
+  dateRange?: {
+    pastDays?: number // default: 365
+    futureDays?: number // default: 30
+  }
+
+  /**
+   * ID 필드 생성 설정
+   */
+  id?: MockIdConfig
+}
+
+/**
  * Mock Module Options
  * nuxt.config.ts에서 mock 키로 설정
  */
@@ -29,6 +208,22 @@ export interface MockModuleOptions {
    * @example './mocks/example.proto' 또는 './mocks'
    */
   proto?: string
+
+  /**
+   * Pagination 설정
+   */
+  pagination?: MockPaginationConfig
+
+  /**
+   * Cursor 설정
+   */
+  cursor?: MockCursorConfig
+
+  /**
+   * 응답 포맷
+   * @default 'auto'
+   */
+  responseFormat?: MockResponseFormat
 }
 
 /**
@@ -44,6 +239,12 @@ export interface MockRuntimeConfig {
   /** 클라이언트 패키지 설정 */
   clientPackageConfig?: OpenApiClientConfig
   protoPath?: string
+  /** Pagination 설정 */
+  pagination?: MockPaginationConfig
+  /** Cursor 설정 */
+  cursor?: MockCursorConfig
+  /** 응답 포맷 */
+  responseFormat?: MockResponseFormat
 }
 
 /**

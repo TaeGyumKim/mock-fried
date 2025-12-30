@@ -7,9 +7,18 @@ import {
   hashString,
   SchemaMockGenerator,
   extractDataModelName,
-} from '../utils/mock-generator'
+  CursorPaginationManager,
+  PagePaginationManager,
+} from '../utils/mock'
 import { getClientPackage } from '../utils/client-parser'
-import type { ParsedEndpoint, ParsedClientPackage, OpenApiClientConfig } from '../../../types'
+import type {
+  ParsedEndpoint,
+  ParsedClientPackage,
+  OpenApiClientConfig,
+  MockPaginationConfig,
+  MockCursorConfig,
+  MockResponseFormat,
+} from '../../../types'
 
 // ============================================
 // OpenAPI Backend 모드 (기존 스펙 파일 방식)
@@ -118,6 +127,8 @@ async function getOpenAPIBackend(specPath: string): Promise<any> {
 let cachedClientPackage: ParsedClientPackage | null = null
 let cachedClientPath: string | null = null
 let mockGenerator: SchemaMockGenerator | null = null
+let cursorPaginationManager: CursorPaginationManager | null = null
+let pagePaginationManager: PagePaginationManager | null = null
 
 /**
  * 클라이언트 패키지에서 파싱된 정보 가져오기
@@ -125,16 +136,41 @@ let mockGenerator: SchemaMockGenerator | null = null
 function getClientPackageData(
   packagePath: string,
   config?: OpenApiClientConfig,
-): { package: ParsedClientPackage, generator: SchemaMockGenerator } {
-  if (cachedClientPackage && cachedClientPath === packagePath && mockGenerator) {
-    return { package: cachedClientPackage, generator: mockGenerator }
+  paginationConfig?: MockPaginationConfig,
+  cursorConfig?: MockCursorConfig,
+): {
+  package: ParsedClientPackage
+  generator: SchemaMockGenerator
+  cursorManager: CursorPaginationManager
+  pageManager: PagePaginationManager
+} {
+  if (cachedClientPackage && cachedClientPath === packagePath && mockGenerator && cursorPaginationManager && pagePaginationManager) {
+    return {
+      package: cachedClientPackage,
+      generator: mockGenerator,
+      cursorManager: cursorPaginationManager,
+      pageManager: pagePaginationManager,
+    }
   }
 
   cachedClientPackage = getClientPackage(packagePath, config)
   cachedClientPath = packagePath
   mockGenerator = new SchemaMockGenerator(cachedClientPackage.models)
 
-  return { package: cachedClientPackage, generator: mockGenerator }
+  // Initialize pagination managers with config
+  cursorPaginationManager = new CursorPaginationManager(mockGenerator, {
+    cursorConfig: cursorConfig,
+  })
+  pagePaginationManager = new PagePaginationManager(mockGenerator, {
+    config: paginationConfig,
+  })
+
+  return {
+    package: cachedClientPackage,
+    generator: mockGenerator,
+    cursorManager: cursorPaginationManager,
+    pageManager: pagePaginationManager,
+  }
 }
 
 /**
@@ -194,9 +230,12 @@ function findMatchingEndpoint(
 function handleClientPackageRequest(
   pkg: ParsedClientPackage,
   generator: SchemaMockGenerator,
+  cursorManager: CursorPaginationManager,
+  pageManager: PagePaginationManager,
   path: string,
   method: string,
   query: Record<string, string | number>,
+  _responseFormat: MockResponseFormat = 'auto',
 ): { statusCode: number, body: unknown, meta?: Record<string, unknown> } {
   const match = findMatchingEndpoint(pkg.endpoints, path, method)
 
@@ -266,33 +305,39 @@ function handleClientPackageRequest(
     // 페이지네이션이 있는 리스트 응답 (items 필드 + pagination 필드)
     if (hasItemsField && hasPaginationFields) {
       if (cursor) {
-        // 커서 기반 페이지네이션
-        const result = generator.generateCursorList(modelName, {
+        // 커서 기반 페이지네이션 (새 CursorPaginationManager 사용)
+        const result = cursorManager.getCursorPage(modelName, {
           cursor,
           limit,
           total: 100,
           seed,
         })
-        responseData = result
+        // Remove internal _snapshotId from response
+        const { _snapshotId: _, ...responseWithoutSnapshotId } = result
+        responseData = responseWithoutSnapshotId
       }
       else {
-        // 페이지 기반 페이지네이션
-        const result = generator.generateList(modelName, {
+        // 페이지 기반 페이지네이션 (새 PagePaginationManager 사용)
+        const result = pageManager.getPagedResponse(modelName, {
           page,
           limit,
           total: 100,
           seed,
         })
-        responseData = result
+        // Remove internal _snapshotId from response if present
+        const { _snapshotId: _, ...responseWithoutSnapshotId } = result
+        responseData = responseWithoutSnapshotId
       }
     }
     else {
       // 단순 배열 래퍼 응답 (posts, comments 등)
-      // 래퍼 구조로 응답 생성
+      // 래퍼 구조로 응답 생성 - 페이지 기반으로 다른 아이템 생성
       const itemCount = limit || 10
-      const items = Array.from({ length: itemCount }, (_, i) =>
-        generator.generateOne(modelName, `${seed}-${i}`, i),
-      )
+      const startIndex = (page - 1) * itemCount // page 파라미터 반영
+      const items = Array.from({ length: itemCount }, (_, i) => {
+        const globalIndex = startIndex + i
+        return generator.generateOne(modelName, `${seed}-${globalIndex}`, globalIndex)
+      })
 
       if (listFieldName) {
         // 래퍼 스키마의 다른 필드들도 생성
@@ -362,6 +407,9 @@ export default defineEventHandler(async (event) => {
       openapiPath?: string
       clientPackagePath?: string
       clientPackageConfig?: OpenApiClientConfig
+      pagination?: MockPaginationConfig
+      cursor?: MockCursorConfig
+      responseFormat?: MockResponseFormat
     }
     | undefined
 
@@ -390,12 +438,23 @@ export default defineEventHandler(async (event) => {
 
   // 모드 1: 클라이언트 패키지 모드
   if (mockConfig?.clientPackagePath) {
-    const { package: pkg, generator } = getClientPackageData(
+    const { package: pkg, generator, cursorManager, pageManager } = getClientPackageData(
       mockConfig.clientPackagePath,
       mockConfig.clientPackageConfig,
+      mockConfig.pagination,
+      mockConfig.cursor,
     )
 
-    const result = handleClientPackageRequest(pkg, generator, path, event.method, query)
+    const result = handleClientPackageRequest(
+      pkg,
+      generator,
+      cursorManager,
+      pageManager,
+      path,
+      event.method,
+      query,
+      mockConfig.responseFormat ?? 'auto',
+    )
 
     if (result.statusCode) {
       event.node.res.statusCode = result.statusCode

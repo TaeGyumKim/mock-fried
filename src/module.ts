@@ -1,7 +1,7 @@
 import { defineNuxtModule, addPlugin, addServerHandler, createResolver, useLogger, addImports, addComponentsDir } from '@nuxt/kit'
 import { resolve, normalize } from 'pathe'
 import { createRequire } from 'node:module'
-import type { MockModuleOptions, OpenApiClientConfig } from './types'
+import type { MockModuleOptions, OpenApiClientConfig, MockRuntimeConfig } from './types'
 
 export type { MockModuleOptions, OpenApiClientConfig }
 
@@ -170,14 +170,18 @@ export default defineNuxtModule<MockModuleOptions>({
       : undefined
 
     // 서버 런타임 설정
-    nuxt.options.runtimeConfig.mock = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(nuxt.options.runtimeConfig as any).mock = {
       enable: options.enable,
       prefix,
       openapiPath,
       clientPackagePath,
       clientPackageConfig,
       protoPath,
-    }
+      pagination: options.pagination,
+      cursor: options.cursor,
+      responseFormat: options.responseFormat ?? 'auto',
+    } satisfies MockRuntimeConfig
 
     // 클라이언트 공개 런타임 설정
     nuxt.options.runtimeConfig.public.mock = {

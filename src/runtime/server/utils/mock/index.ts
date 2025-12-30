@@ -1,15 +1,10 @@
 /**
- * Mock 데이터 생성 유틸리티
- *
- * @deprecated 직접 import 대신 'mock/' 모듈에서 import 하세요.
- * 예: import { SchemaMockGenerator } from './mock'
- *
- * 이 파일은 하위 호환성을 위해 유지됩니다.
+ * Mock 생성기 모듈 진입점
+ * 하위 호환성을 위해 모든 기존 export를 유지
  */
 
-// Re-export everything from the new modular structure
+// Shared utilities
 export {
-  // Shared
   hashString,
   seededRandom,
   SeededRandom,
@@ -20,20 +15,33 @@ export {
   isIdField,
   generateIdValue,
   generateByFormat,
-  // Proto
+} from './shared'
+
+// Proto generator
+export {
   generateMockValueForProtoField,
   generateMockMessage,
   deriveSeedFromRequest,
-  // OpenAPI Schema
+} from './proto-generator'
+
+// OpenAPI schema generator
+export {
   generateMockFromSchema,
-  // Client Package
+} from './openapi-generator'
+
+// Client package generator
+export {
   inferValueByFieldName,
   generateValueByType,
   inferTypeFromFieldName,
   SchemaMockGenerator,
   extractDataModelName,
   type ResponseTypeInfo,
-  // Pagination
+} from './client-generator'
+
+// Pagination (enhanced)
+export {
+  // Types
   type CursorPayload,
   type PaginationSnapshot,
   type PagePaginationOptions,
@@ -44,12 +52,15 @@ export {
   type CursorConfig,
   DEFAULT_PAGINATION_CONFIG,
   DEFAULT_CURSOR_CONFIG,
+  // Snapshot Store
   SnapshotStore,
   getSnapshotStore,
   resetSnapshotStore,
+  // Cursor Manager
   CursorPaginationManager,
   encodeCursor,
   decodeCursor,
   isCursorExpired,
+  // Page Manager
   PagePaginationManager,
-} from './mock'
+} from './pagination'
