@@ -77,3 +77,7 @@ Desktop.ini
 
 # Build artifacts
 *.tsbuildinfo
+
+# Internal/private project tests (do not commit)
+test/emsp-*.test.ts
+playground-openapi/pages/emsp-*.vue
