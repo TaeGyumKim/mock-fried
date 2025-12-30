@@ -3,7 +3,7 @@ import { useRuntimeConfig } from '#imports'
 import * as protoLoader from '@grpc/proto-loader'
 import * as grpc from '@grpc/grpc-js'
 import { readdirSync, statSync } from 'node:fs'
-import { join, extname } from 'pathe'
+import { join, extname, dirname } from 'pathe'
 import { generateMockMessage, deriveSeedFromRequest } from '../utils/mock'
 
 // Proto 캐시
@@ -83,13 +83,17 @@ async function loadProto(protoPath: string): Promise<ProtoCache> {
     throw new Error(`No .proto files found in ${protoPath}`)
   }
 
+  // protoPath가 파일인 경우 dirname 사용, 디렉토리인 경우 그대로 사용
+  const stat = statSync(protoPath)
+  const includeDir = stat.isFile() ? dirname(protoPath) : protoPath
+
   const packageDefinition = await protoLoader.load(protoFiles, {
     keepCase: true,
     longs: String,
     enums: String,
     defaults: true,
     oneofs: true,
-    includeDirs: [protoPath],
+    includeDirs: [includeDir],
   })
 
   const grpcObject = grpc.loadPackageDefinition(packageDefinition)
@@ -105,6 +109,14 @@ async function loadProto(protoPath: string): Promise<ProtoCache> {
   cachedProtoPath = protoPath
 
   return protoCache
+}
+
+/**
+ * Proto 캐시 초기화
+ */
+export function clearProtoCache(): void {
+  protoCache = null
+  cachedProtoPath = null
 }
 
 /**
