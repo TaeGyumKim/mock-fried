@@ -17,7 +17,6 @@ import type {
   OpenApiClientConfig,
   MockPaginationConfig,
   MockCursorConfig,
-  MockResponseFormat,
 } from '../../../types'
 
 // ============================================
@@ -131,6 +130,19 @@ let cursorPaginationManager: CursorPaginationManager | null = null
 let pagePaginationManager: PagePaginationManager | null = null
 
 /**
+ * OpenAPI 관련 캐시 초기화
+ */
+export function clearOpenApiCache(): void {
+  apiInstance = null
+  cachedSpecPath = null
+  cachedClientPackage = null
+  cachedClientPath = null
+  mockGenerator = null
+  cursorPaginationManager = null
+  pagePaginationManager = null
+}
+
+/**
  * 클라이언트 패키지에서 파싱된 정보 가져오기
  */
 function getClientPackageData(
@@ -235,7 +247,6 @@ function handleClientPackageRequest(
   path: string,
   method: string,
   query: Record<string, string | number>,
-  _responseFormat: MockResponseFormat = 'auto',
 ): { statusCode: number, body: unknown, meta?: Record<string, unknown> } {
   const match = findMatchingEndpoint(pkg.endpoints, path, method)
 
@@ -451,7 +462,6 @@ export default defineEventHandler(async (event) => {
       clientPackageConfig?: OpenApiClientConfig
       pagination?: MockPaginationConfig
       cursor?: MockCursorConfig
-      responseFormat?: MockResponseFormat
     }
     | undefined
 
@@ -495,7 +505,6 @@ export default defineEventHandler(async (event) => {
       path,
       event.method,
       query,
-      mockConfig.responseFormat ?? 'auto',
     )
 
     if (result.statusCode) {
