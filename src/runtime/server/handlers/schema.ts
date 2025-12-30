@@ -2,7 +2,7 @@ import { defineEventHandler, createError } from 'h3'
 import { useRuntimeConfig } from '#imports'
 import { readFileSync, existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { resolve } from 'pathe'
+import yaml from 'js-yaml'
 import type {
   ApiSchema,
   OpenApiSchema,
@@ -107,6 +107,7 @@ function parseClientPackageSchema(config: OpenApiClientConfig): OpenApiSchema | 
     }
   }
   catch (error) {
+    // eslint-disable-next-line no-console
     console.error('[mock-fried] Failed to parse client package:', error)
     return undefined
   }
@@ -114,6 +115,13 @@ function parseClientPackageSchema(config: OpenApiClientConfig): OpenApiSchema | 
 
 // 캐시
 let cachedSchema: ApiSchema | null = null
+
+/**
+ * 스키마 캐시 초기화
+ */
+export function clearSchemaCache(): void {
+  cachedSchema = null
+}
 
 /**
  * OpenAPI 스펙에서 스키마 메타데이터 추출
@@ -128,8 +136,6 @@ function parseOpenApiSpec(specPath: string): OpenApiSchema | undefined {
     let spec: Record<string, unknown>
 
     if (specPath.endsWith('.yaml') || specPath.endsWith('.yml')) {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const yaml = require('js-yaml')
       spec = yaml.load(content) as Record<string, unknown>
     }
     else {
@@ -185,7 +191,9 @@ function parseOpenApiSpec(specPath: string): OpenApiSchema | undefined {
       paths: pathItems,
     }
   }
-  catch {
+  catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('[mock-fried] Failed to parse OpenAPI spec:', specPath, error)
     return undefined
   }
 }
@@ -261,7 +269,9 @@ async function parseProtoSpec(protoPath: string): Promise<RpcSchema | undefined>
       services,
     }
   }
-  catch {
+  catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('[mock-fried] Failed to parse Proto spec:', protoPath, error)
     return undefined
   }
 }
