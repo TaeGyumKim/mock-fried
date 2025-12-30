@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "vue.volar",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "editorconfig.editorconfig",
+    "zxh404.vscode-proto3",
+    "redhat.vscode-yaml"
+  ]
+}

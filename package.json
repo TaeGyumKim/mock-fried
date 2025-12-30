@@ -1,0 +1,71 @@
+{
+  "name": "mock-fried",
+  "version": "1.0.0",
+  "description": "Nuxt3 Mock API Module - OpenAPI & Protobuf RPC Mock Server",
+  "repository": "your-org/mock-fried",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "yarn@4.12.0",
+  "workspaces": [
+    "playground-openapi",
+    "playground-proto"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/types.d.mts",
+      "import": "./dist/module.mjs"
+    }
+  },
+  "main": "./dist/module.mjs",
+  "typesVersions": {
+    "*": {
+      ".": [
+        "./dist/types.d.mts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prepack": "nuxt-module-build build",
+    "dev": "yarn dev:prepare && nuxi dev playground-openapi",
+    "dev:openapi": "yarn dev:prepare && nuxi dev playground-openapi",
+    "dev:proto": "yarn dev:prepare:proto && nuxi dev playground-proto",
+    "dev:build": "nuxi build playground-openapi",
+    "dev:build:proto": "nuxi build playground-proto",
+    "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare playground-openapi",
+    "dev:prepare:proto": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare playground-proto",
+    "release": "yarn lint && yarn test && yarn prepack && changelogen --release && yarn npm publish && git push --follow-tags",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "test:types": "vue-tsc --noEmit && cd playground-openapi && vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.12.0",
+    "@grpc/proto-loader": "^0.7.13",
+    "@nuxt/kit": "^4.2.2",
+    "js-yaml": "^4.1.0",
+    "openapi-backend": "^5.10.6"
+  },
+  "devDependencies": {
+    "@nuxt/devtools": "^3.1.1",
+    "@nuxt/eslint-config": "^1.12.1",
+    "@nuxt/module-builder": "^1.0.2",
+    "@nuxt/schema": "^4.2.2",
+    "@nuxt/test-utils": "^3.21.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "latest",
+    "changelogen": "^0.6.2",
+    "eslint": "^9.39.2",
+    "nuxt": "^4.2.2",
+    "prettier": "^3.5.3",
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.16",
+    "vue-tsc": "^3.2.1"
+  }
+}

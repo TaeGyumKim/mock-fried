@@ -1,0 +1,52 @@
+# Auto detect text files and perform LF normalization
+* text=auto eol=lf
+
+# Explicit text files
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.vue text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.proto text eol=lf
+
+# Config files
+*.config.* text eol=lf
+.editorconfig text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+.npmrc text eol=lf
+.yarnrc.yml text eol=lf
+
+# Shell scripts
+*.sh text eol=lf
+
+# Windows batch files
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+
+# Yarn Berry
+.yarn/releases/** binary
+.yarn/plugins/** binary
+
+# Lock files - do not diff
+yarn.lock -diff linguist-generated=true
+package-lock.json -diff linguist-generated=true

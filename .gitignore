@@ -1,0 +1,79 @@
+# Dependencies
+node_modules
+
+# Logs
+*.log*
+
+# Temp directories
+.temp
+.tmp
+.cache
+
+# Yarn Berry (node-modules linker)
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
+
+# Generated dirs
+dist
+
+# Nuxt
+.nuxt
+.output
+.data
+.vercel_build_output
+.build-*
+.netlify
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Testing
+reports
+coverage
+*.lcov
+.nyc_output
+
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# Intellij idea
+*.iml
+.idea
+
+# OSX
+.DS_Store
+.AppleDouble
+.LSOverride
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# Editor backup files
+*.swp
+*.swo
+*.bak
+
+# Build artifacts
+*.tsbuildinfo
