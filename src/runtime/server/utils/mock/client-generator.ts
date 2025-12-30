@@ -345,14 +345,55 @@ export class SchemaMockGenerator {
 
   /**
    * ID 부여된 단일 객체 생성 (Pagination용)
+   * 주어진 ID를 모델의 ID 필드에 설정하여 cursor와 응답 ID가 일치하도록 함
    */
   generateOneWithId(modelName: string, itemId: string, seed?: string | number, index: number = 0): Record<string, unknown> {
     const item = this.generateOne(modelName, seed ?? `${modelName}-${itemId}`, index)
-    // ID 필드가 없으면 추가
-    if (!('id' in item)) {
+
+    // ID 필드 찾기 및 주어진 ID로 덮어쓰기
+    const idFieldName = this.findIdFieldName(modelName)
+    if (idFieldName) {
+      const outputKey = this.getOutputKey(modelName, idFieldName)
+      item[outputKey] = itemId
+    }
+    else if (!('id' in item)) {
+      // ID 필드를 찾지 못했고 'id' 키도 없으면 추가
       item.id = itemId
     }
+    else {
+      // 기존 'id' 키가 있으면 덮어쓰기
+      item.id = itemId
+    }
+
     return item
+  }
+
+  /**
+   * 모델의 ID 필드명 찾기 (MockIdConfig 기반)
+   */
+  private findIdFieldName(modelName: string): string | null {
+    const schema = this.models.get(modelName)
+    if (!schema) return null
+
+    // MockIdConfig 기반으로 ID 필드 찾기
+    for (const field of schema.fields) {
+      if (isIdField(field.name, this.idConfig)) {
+        return field.name
+      }
+    }
+
+    return null
+  }
+
+  /**
+   * 필드의 출력 키 가져오기 (jsonKey 또는 name)
+   */
+  private getOutputKey(modelName: string, fieldName: string): string {
+    const schema = this.models.get(modelName)
+    if (!schema) return fieldName
+
+    const field = schema.fields.find(f => f.name === fieldName)
+    return field?.jsonKey || fieldName
   }
 
   /**

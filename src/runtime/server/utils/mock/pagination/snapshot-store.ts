@@ -2,9 +2,10 @@
  * Pagination 스냅샷 저장소
  * 일관된 페이지네이션을 위한 데이터 스냅샷 관리
  */
+import type { MockIdConfig } from '../../../../../types'
 import type { PaginationSnapshot, PaginationConfig } from './types'
 import { DEFAULT_PAGINATION_CONFIG } from './types'
-import { generateSnapshotId, SeededRandom } from '../shared'
+import { generateSnapshotId, generateIdValue, DEFAULT_ID_CONFIG } from '../shared'
 
 /**
  * 스냅샷 저장소 클래스
@@ -12,10 +13,12 @@ import { generateSnapshotId, SeededRandom } from '../shared'
 export class SnapshotStore {
   private snapshots: Map<string, PaginationSnapshot> = new Map()
   private config: Required<PaginationConfig>
+  private idConfig: MockIdConfig
   private cleanupInterval: ReturnType<typeof setInterval> | null = null
 
-  constructor(config?: PaginationConfig) {
+  constructor(config?: PaginationConfig, idConfig?: MockIdConfig) {
     this.config = { ...DEFAULT_PAGINATION_CONFIG, ...config }
+    this.idConfig = idConfig ?? DEFAULT_ID_CONFIG
 
     // 주기적 정리 (5분마다)
     if (typeof setInterval !== 'undefined') {
@@ -31,11 +34,14 @@ export class SnapshotStore {
   }
 
   /**
-   * 아이템 ID 목록 생성
+   * 아이템 ID 목록 생성 (MockIdConfig 기반)
+   * 실제 응답에서 사용될 ID와 동일한 값을 생성
    */
-  private generateItemIds(total: number, seed: string): string[] {
-    const rng = new SeededRandom(seed)
-    return Array.from({ length: total }, (_, i) => `item-${i + 1}-${rng.nextInt(1000, 9999)}`)
+  private generateItemIds(total: number, seed: string, modelName: string): string[] {
+    return Array.from({ length: total }, (_, i) => {
+      const id = generateIdValue('id', i, `${seed}-${modelName}-${i}`, this.idConfig)
+      return String(id) // uuid, ulid, nanoid 등을 문자열로 변환
+    })
   }
 
   /**
@@ -65,7 +71,7 @@ export class SnapshotStore {
       modelName,
       seed,
       total,
-      itemIds: this.generateItemIds(total, seed),
+      itemIds: this.generateItemIds(total, seed, modelName),
       createdAt: now,
       expiresAt: shouldCache ? now + ttl : undefined,
       accessedAt: now,
@@ -144,9 +150,9 @@ let defaultStore: SnapshotStore | null = null
 /**
  * 기본 스냅샷 저장소 가져오기
  */
-export function getSnapshotStore(config?: PaginationConfig): SnapshotStore {
+export function getSnapshotStore(config?: PaginationConfig, idConfig?: MockIdConfig): SnapshotStore {
   if (!defaultStore) {
-    defaultStore = new SnapshotStore(config)
+    defaultStore = new SnapshotStore(config, idConfig)
   }
   return defaultStore
 }
