@@ -160,8 +160,9 @@ const schema = await $api.getSchema()
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/mock/__schema` | GET | API 스키마 메타데이터 |
-| `/mock/**` | * | OpenAPI Mock 핸들러 |
+| `/mock/__reset` | POST | 캐시 초기화 |
 | `/mock/rpc/:service/:method` | POST | RPC Mock 핸들러 |
+| `/mock/**` | * | OpenAPI Mock 핸들러 |
 
 ## Development
 

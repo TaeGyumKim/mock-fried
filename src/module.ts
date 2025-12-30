@@ -196,13 +196,13 @@ export default defineNuxtModule<MockModuleOptions>({
     })
     logger.info(`Schema handler registered at GET ${prefix}/__schema`)
 
-    // 캐시 초기화 핸들러 등록
+    // 캐시 초기화 핸들러 등록 (POST로 변경 - GET은 프리페치/캐시 위험)
     addServerHandler({
       route: `${prefix}/__reset`,
-      method: 'get',
+      method: 'post',
       handler: resolver.resolve('./runtime/server/handlers/reset'),
     })
-    logger.info(`Reset handler registered at GET ${prefix}/__reset`)
+    logger.info(`Reset handler registered at POST ${prefix}/__reset`)
 
     // RPC 핸들러 등록 (더 구체적인 라우트)
     if (protoPath) {

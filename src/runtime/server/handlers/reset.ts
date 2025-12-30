@@ -7,10 +7,12 @@ import { resetSnapshotStore } from '../utils/mock/pagination'
 
 /**
  * 캐시 초기화 핸들러
- * GET /mock/__reset
+ * POST {prefix}/__reset
  *
  * 모든 캐시를 초기화하여 설정 변경사항을 즉시 반영할 수 있게 합니다.
  * 개발 환경에서 핫리로드 후 캐시 문제 해결에 유용합니다.
+ *
+ * POST를 사용하는 이유: GET은 브라우저/CDN 프리페치로 의도치 않게 호출될 수 있음
  */
 export default defineEventHandler(() => {
   // OpenAPI 관련 캐시 초기화
