@@ -75,6 +75,9 @@ Desktop.ini
 *.swo
 *.bak
 
+# Claude Code
+.claude/
+
 # Build artifacts
 *.tsbuildinfo
 
