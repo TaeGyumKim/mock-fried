@@ -51,7 +51,8 @@
     "@grpc/proto-loader": "^0.7.13",
     "@nuxt/kit": "^4.2.2",
     "js-yaml": "^4.1.0",
-    "openapi-backend": "^5.10.6"
+    "openapi-backend": "^5.10.6",
+    "pathe": "^2.0.2"
   },
   "devDependencies": {
     "@nuxt/devtools": "^3.1.1",

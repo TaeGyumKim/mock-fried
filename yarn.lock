@@ -6983,6 +6983,7 @@ __metadata:
     js-yaml: "npm:^4.1.0"
     nuxt: "npm:^4.2.2"
     openapi-backend: "npm:^5.10.6"
+    pathe: "npm:^2.0.2"
     prettier: "npm:^3.5.3"
     typescript: "npm:~5.9.3"
     vitest: "npm:^4.0.16"
@@ -7876,7 +7877,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pathe@npm:^2.0.1, pathe@npm:^2.0.3":
+"pathe@npm:^2.0.1, pathe@npm:^2.0.2, pathe@npm:^2.0.3":
   version: 2.0.3
   resolution: "pathe@npm:2.0.3"
   checksum: 10c0/c118dc5a8b5c4166011b2b70608762e260085180bb9e33e80a50dcdb1e78c010b1624f4280c492c92b05fc276715a4c357d1f9edc570f8f1b3d90b6839ebaca1
