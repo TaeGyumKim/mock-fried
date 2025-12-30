@@ -331,50 +331,95 @@ function handleClientPackageRequest(
     }
     else {
       // 단순 배열 래퍼 응답 (posts, comments 등)
-      // 래퍼 구조로 응답 생성 - 페이지 기반으로 다른 아이템 생성
-      const itemCount = limit || 10
-      const startIndex = (page - 1) * itemCount // page 파라미터 반영
-      const items = Array.from({ length: itemCount }, (_, i) => {
-        const globalIndex = startIndex + i
-        return generator.generateOne(modelName, `${seed}-${globalIndex}`, globalIndex)
-      })
+      // cursor 파라미터가 있으면 CursorPaginationManager 사용
+      if (cursor) {
+        const result = cursorManager.getCursorPage(modelName, {
+          cursor,
+          limit,
+          total: 100,
+          seed,
+        })
 
-      if (listFieldName) {
-        // 래퍼 스키마의 다른 필드들도 생성
-        const otherFields: Record<string, unknown> = {}
+        if (listFieldName) {
+          // 래퍼 구조로 변환 (items -> posts 등)
+          const listField = wrapperSchema?.fields.find(f => f.name === listFieldName)
+          const listJsonKey = listField?.jsonKey || listFieldName
 
-        // listFieldName에 해당하는 필드의 JSON 키 가져오기
-        const listField = wrapperSchema?.fields.find(f => f.name === listFieldName)
-        const listJsonKey = listField?.jsonKey || listFieldName
-
-        if (wrapperSchema) {
-          for (const field of wrapperSchema.fields) {
-            if (field.name !== listFieldName) {
-              const outputKey = field.jsonKey || field.name
-              // 커서 관련 필드 처리
-              if (field.name === 'nextCursor' || field.name === 'cursor') {
-                otherFields[outputKey] = cursor
-                  ? Buffer.from(String(itemCount)).toString('base64')
-                  : undefined
+          const otherFields: Record<string, unknown> = {}
+          if (wrapperSchema) {
+            for (const field of wrapperSchema.fields) {
+              if (field.name !== listFieldName) {
+                const outputKey = field.jsonKey || field.name
+                if (field.name === 'nextCursor' || field.name === 'cursor') {
+                  otherFields[outputKey] = result.nextCursor
+                }
+                else if (field.name === 'prevCursor') {
+                  otherFields[outputKey] = result.prevCursor
+                }
+                else if (field.name === 'hasMore') {
+                  otherFields[outputKey] = result.hasMore
+                }
+                else if (field.name === 'total' || field.name === 'totalItems') {
+                  otherFields[outputKey] = 100
+                }
               }
-              else if (field.name === 'hasMore') {
-                otherFields[outputKey] = true
-              }
-              else if (field.name === 'total' || field.name === 'totalItems') {
-                otherFields[outputKey] = 100
-              }
-              // 다른 필드는 generateOne으로 생성
             }
           }
-        }
 
-        responseData = {
-          [listJsonKey]: items,
-          ...otherFields,
+          responseData = {
+            [listJsonKey]: result.items,
+            ...otherFields,
+          }
+        }
+        else {
+          responseData = result.items
         }
       }
       else {
-        responseData = items
+        // cursor가 없으면 기존 방식 (첫 페이지)
+        // PagePaginationManager 사용하여 ID 포함된 아이템 생성
+        const result = pageManager.getPagedResponse(modelName, {
+          page,
+          limit,
+          total: 100,
+          seed,
+        })
+
+        if (listFieldName) {
+          const listField = wrapperSchema?.fields.find(f => f.name === listFieldName)
+          const listJsonKey = listField?.jsonKey || listFieldName
+
+          const otherFields: Record<string, unknown> = {}
+          if (wrapperSchema) {
+            for (const field of wrapperSchema.fields) {
+              if (field.name !== listFieldName) {
+                const outputKey = field.jsonKey || field.name
+                if (field.name === 'nextCursor' || field.name === 'cursor') {
+                  // 첫 페이지의 경우 다음 cursor 생성
+                  const lastItem = result.items[result.items.length - 1]
+                  const lastId = lastItem?.id as string | undefined
+                  if (lastId && result.items.length >= limit) {
+                    otherFields[outputKey] = lastId // ID를 cursor로 사용
+                  }
+                }
+                else if (field.name === 'hasMore') {
+                  otherFields[outputKey] = result.pagination.page < result.pagination.totalPages
+                }
+                else if (field.name === 'total' || field.name === 'totalItems') {
+                  otherFields[outputKey] = result.pagination.total
+                }
+              }
+            }
+          }
+
+          responseData = {
+            [listJsonKey]: result.items,
+            ...otherFields,
+          }
+        }
+        else {
+          responseData = result.items
+        }
       }
     }
   }
