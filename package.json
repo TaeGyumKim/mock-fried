@@ -1,8 +1,15 @@
 {
   "name": "mock-fried",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Nuxt3 Mock API Module - OpenAPI & Protobuf RPC Mock Server",
-  "repository": "your-org/mock-fried",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TaeGyumKim/mock-fried.git"
+  },
+  "homepage": "https://github.com/TaeGyumKim/mock-fried#readme",
+  "bugs": {
+    "url": "https://github.com/TaeGyumKim/mock-fried/issues"
+  },
   "license": "MIT",
   "type": "module",
   "packageManager": "yarn@4.12.0",
