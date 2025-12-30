@@ -6979,6 +6979,7 @@ __metadata:
     "@types/js-yaml": "npm:^4.0.9"
     "@types/node": "npm:latest"
     changelogen: "npm:^0.6.2"
+    consola: "npm:^3.4.2"
     eslint: "npm:^9.39.2"
     js-yaml: "npm:^4.1.0"
     nuxt: "npm:^4.2.2"
