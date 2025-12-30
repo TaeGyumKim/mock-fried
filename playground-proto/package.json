@@ -1,0 +1,15 @@
+{
+  "private": true,
+  "name": "mock-fried-playground-proto",
+  "type": "module",
+  "packageManager": "yarn@4.12.0",
+  "scripts": {
+    "dev": "nuxi dev",
+    "build": "nuxi build",
+    "generate": "nuxi generate"
+  },
+  "dependencies": {
+    "@airian/proto": "git+https://git.dev.opnd.io/airian/proto.git#commit=6fd1156e308f170884388f56ae75f704c3be67d0",
+    "nuxt": "^4.2.2"
+  }
+}
