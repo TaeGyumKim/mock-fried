@@ -57,13 +57,6 @@ export interface MockCursorConfig {
 }
 
 /**
- * 응답 포맷 타입
- * - 'auto': 기존 동작 유지 (스키마 기반 자동)
- * - 'standardized': 표준화된 응답 형식
- */
-export type MockResponseFormat = 'auto' | 'standardized'
-
-/**
  * ID 생성 포맷
  * - 'sequential': 'id-1', 'id-2', ... (prefix + index)
  * - 'uuid': 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
@@ -218,12 +211,6 @@ export interface MockModuleOptions {
    * Cursor 설정
    */
   cursor?: MockCursorConfig
-
-  /**
-   * 응답 포맷
-   * @default 'auto'
-   */
-  responseFormat?: MockResponseFormat
 }
 
 /**
@@ -243,8 +230,6 @@ export interface MockRuntimeConfig {
   pagination?: MockPaginationConfig
   /** Cursor 설정 */
   cursor?: MockCursorConfig
-  /** 응답 포맷 */
-  responseFormat?: MockResponseFormat
 }
 
 /**
