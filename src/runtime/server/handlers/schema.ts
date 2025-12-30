@@ -1,7 +1,8 @@
 import { defineEventHandler, createError } from 'h3'
 import { useRuntimeConfig } from '#imports'
-import { readFileSync, existsSync } from 'node:fs'
+import { consola } from 'consola'
 import { createRequire } from 'node:module'
+import { readFileSync, existsSync } from 'node:fs'
 import yaml from 'js-yaml'
 import type {
   ApiSchema,
@@ -14,11 +15,64 @@ import type {
   RpcFieldSchema,
   OpenApiClientConfig,
   ParsedClientPackage,
+  ParsedEndpoint,
 } from '../../../types'
 import { getClientPackage } from '../utils/client-parser'
 
+const logger = consola.withTag('mock-fried')
+
 // ESM 환경에서 require.resolve 사용을 위한 helper
 const _require = createRequire(import.meta.url)
+
+/**
+ * ParsedEndpoint를 OpenApiPathItem으로 변환
+ */
+function convertEndpointToPathItem(endpoint: ParsedEndpoint): OpenApiPathItem {
+  const parameters: OpenApiParameter[] = [
+    ...(endpoint.pathParams || []).map(p => ({
+      name: p.name,
+      in: 'path' as const,
+      required: p.required,
+      schema: { type: p.type },
+    })),
+    ...(endpoint.queryParams || []).map(p => ({
+      name: p.name,
+      in: 'query' as const,
+      required: p.required,
+      schema: { type: p.type },
+    })),
+  ]
+
+  return {
+    path: endpoint.path,
+    method: endpoint.method,
+    operationId: endpoint.operationId,
+    summary: endpoint.summary,
+    tags: endpoint.apiClassName ? [endpoint.apiClassName] : undefined,
+    parameters: parameters.length > 0 ? parameters : undefined,
+    requestBody: endpoint.requestBodyType
+      ? {
+          content: {
+            'application/json': {
+              schema: { $ref: `#/components/schemas/${endpoint.requestBodyType}` },
+            },
+          },
+        }
+      : undefined,
+    responses: {
+      200: {
+        description: 'Success',
+        content: endpoint.responseType
+          ? {
+              'application/json': {
+                schema: { $ref: `#/components/schemas/${endpoint.responseType}` },
+              },
+            }
+          : undefined,
+      },
+    },
+  }
+}
 
 /**
  * Client package 설정에서 OpenAPI 스키마 메타데이터 추출
@@ -42,52 +96,7 @@ function parseClientPackageSchema(config: OpenApiClientConfig): OpenApiSchema | 
     }
 
     // ParsedEndpoint를 OpenApiPathItem으로 변환
-    const pathItems: OpenApiPathItem[] = clientPackage.endpoints.map((endpoint) => {
-      const parameters: OpenApiParameter[] = [
-        ...(endpoint.pathParams || []).map(p => ({
-          name: p.name,
-          in: 'path' as const,
-          required: p.required,
-          schema: { type: p.type },
-        })),
-        ...(endpoint.queryParams || []).map(p => ({
-          name: p.name,
-          in: 'query' as const,
-          required: p.required,
-          schema: { type: p.type },
-        })),
-      ]
-
-      return {
-        path: endpoint.path,
-        method: endpoint.method,
-        operationId: endpoint.operationId,
-        summary: endpoint.summary,
-        tags: endpoint.apiClassName ? [endpoint.apiClassName] : undefined,
-        parameters: parameters.length > 0 ? parameters : undefined,
-        requestBody: endpoint.requestBodyType
-          ? {
-              content: {
-                'application/json': {
-                  schema: { $ref: `#/components/schemas/${endpoint.requestBodyType}` },
-                },
-              },
-            }
-          : undefined,
-        responses: {
-          200: {
-            description: 'Success',
-            content: endpoint.responseType
-              ? {
-                  'application/json': {
-                    schema: { $ref: `#/components/schemas/${endpoint.responseType}` },
-                  },
-                }
-              : undefined,
-          },
-        },
-      }
-    })
+    const pathItems = clientPackage.endpoints.map(convertEndpointToPathItem)
 
     return {
       info: {
@@ -107,8 +116,7 @@ function parseClientPackageSchema(config: OpenApiClientConfig): OpenApiSchema | 
     }
   }
   catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('[mock-fried] Failed to parse client package:', error)
+    logger.error('Failed to parse client package:', error)
     return undefined
   }
 }
@@ -147,23 +155,52 @@ function parseOpenApiSpec(specPath: string): OpenApiSchema | undefined {
 
     const pathItems: OpenApiPathItem[] = []
 
-    for (const [path, methods] of Object.entries(paths)) {
-      for (const [method, operation] of Object.entries(methods)) {
+    for (const [path, pathItem] of Object.entries(paths)) {
+      // path-level params 추출
+      const pathLevelParams: OpenApiParameter[] = []
+      if (Array.isArray(pathItem.parameters)) {
+        for (const param of pathItem.parameters) {
+          const p = param as Record<string, unknown>
+          pathLevelParams.push({
+            name: p.name as string,
+            in: p.in as 'path' | 'query' | 'header' | 'cookie',
+            required: p.required as boolean | undefined,
+            description: p.description as string | undefined,
+            schema: p.schema as OpenApiParameter['schema'],
+          })
+        }
+      }
+
+      for (const [method, operation] of Object.entries(pathItem)) {
         if (['get', 'post', 'put', 'delete', 'patch'].includes(method.toLowerCase())) {
           const op = operation as Record<string, unknown>
 
-          // 파라미터 추출
-          const parameters: OpenApiParameter[] = []
+          // operation-level params 추출
+          const operationParams: OpenApiParameter[] = []
           if (Array.isArray(op.parameters)) {
             for (const param of op.parameters) {
               const p = param as Record<string, unknown>
-              parameters.push({
+              operationParams.push({
                 name: p.name as string,
                 in: p.in as 'path' | 'query' | 'header' | 'cookie',
                 required: p.required as boolean | undefined,
                 description: p.description as string | undefined,
                 schema: p.schema as OpenApiParameter['schema'],
               })
+            }
+          }
+
+          // path-level + operation-level params 병합 (operation이 우선)
+          const mergedParams = [...pathLevelParams]
+          for (const opParam of operationParams) {
+            const existingIndex = mergedParams.findIndex(
+              p => p.name === opParam.name && p.in === opParam.in,
+            )
+            if (existingIndex >= 0) {
+              mergedParams[existingIndex] = opParam // operation param이 덮어씀
+            }
+            else {
+              mergedParams.push(opParam)
             }
           }
 
@@ -174,7 +211,7 @@ function parseOpenApiSpec(specPath: string): OpenApiSchema | undefined {
             summary: op.summary as string | undefined,
             description: op.description as string | undefined,
             tags: op.tags as string[] | undefined,
-            parameters: parameters.length > 0 ? parameters : undefined,
+            parameters: mergedParams.length > 0 ? mergedParams : undefined,
             requestBody: op.requestBody as OpenApiPathItem['requestBody'],
             responses: op.responses as OpenApiPathItem['responses'],
           })
@@ -192,8 +229,7 @@ function parseOpenApiSpec(specPath: string): OpenApiSchema | undefined {
     }
   }
   catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('[mock-fried] Failed to parse OpenAPI spec:', specPath, error)
+    logger.error('Failed to parse OpenAPI spec:', specPath, error)
     return undefined
   }
 }
@@ -270,8 +306,7 @@ async function parseProtoSpec(protoPath: string): Promise<RpcSchema | undefined>
     }
   }
   catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('[mock-fried] Failed to parse Proto spec:', protoPath, error)
+    logger.error('Failed to parse Proto spec:', protoPath, error)
     return undefined
   }
 }
@@ -372,43 +407,7 @@ export default defineEventHandler(async () => {
     }
 
     // ParsedEndpoint를 OpenApiPathItem으로 변환
-    const pathItems: OpenApiPathItem[] = clientPkg.endpoints.map((endpoint) => {
-      const parameters: OpenApiParameter[] = [
-        ...(endpoint.pathParams || []).map(p => ({
-          name: p.name,
-          in: 'path' as const,
-          required: p.required,
-          schema: { type: p.type },
-        })),
-        ...(endpoint.queryParams || []).map(p => ({
-          name: p.name,
-          in: 'query' as const,
-          required: p.required,
-          schema: { type: p.type },
-        })),
-      ]
-
-      return {
-        path: endpoint.path,
-        method: endpoint.method,
-        operationId: endpoint.operationId,
-        summary: endpoint.summary,
-        tags: endpoint.apiClassName ? [endpoint.apiClassName] : undefined,
-        parameters: parameters.length > 0 ? parameters : undefined,
-        responses: {
-          200: {
-            description: 'Success',
-            content: endpoint.responseType
-              ? {
-                  'application/json': {
-                    schema: { $ref: `#/components/schemas/${endpoint.responseType}` },
-                  },
-                }
-              : undefined,
-          },
-        },
-      }
-    })
+    const pathItems = clientPkg.endpoints.map(convertEndpointToPathItem)
 
     schema.openapi = {
       info: {
