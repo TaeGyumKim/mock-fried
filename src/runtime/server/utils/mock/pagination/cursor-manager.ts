@@ -24,29 +24,53 @@ export function encodeCursor(payload: CursorPayload): string {
 
 /**
  * Cursor 디코딩
+ * - base64url 인코딩된 CursorPayload JSON
+ * - Legacy base64 인코딩된 인덱스 번호
+ * - Raw UUID/ID 문자열 (직접 ID로 사용)
  */
 export function decodeCursor(cursor: string): CursorPayload | null {
+  // 1. base64url 인코딩된 JSON CursorPayload 시도
   try {
     const json = Buffer.from(cursor, 'base64url').toString('utf-8')
-    return JSON.parse(json) as CursorPayload
+    const parsed = JSON.parse(json) as CursorPayload
+    // 유효한 CursorPayload인지 확인
+    if (parsed && typeof parsed.lastId === 'string' && parsed.direction) {
+      return parsed
+    }
   }
   catch {
-    // Legacy cursor format (base64 encoded index)
-    try {
-      const index = Number.parseInt(Buffer.from(cursor, 'base64').toString('utf-8'), 10)
-      if (!Number.isNaN(index)) {
-        return {
-          lastId: `legacy-${index}`,
-          direction: 'forward',
-          timestamp: Date.now(),
-        }
+    // Ignore - try other formats
+  }
+
+  // 2. Legacy cursor format (base64 encoded index)
+  try {
+    const decoded = Buffer.from(cursor, 'base64').toString('utf-8')
+    const index = Number.parseInt(decoded, 10)
+    if (!Number.isNaN(index) && decoded === String(index)) {
+      return {
+        lastId: `legacy-${index}`,
+        direction: 'forward',
+        timestamp: Date.now(),
       }
     }
-    catch {
-      // Ignore
-    }
-    return null
   }
+  catch {
+    // Ignore - try other formats
+  }
+
+  // 3. Raw ID 문자열 (UUID, ULID 등) - 직접 ID로 사용
+  // UUID 패턴: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  // ULID 패턴: 26자리 영숫자
+  // NanoID 패턴: 21자리 영숫자+특수문자
+  if (cursor && cursor.length >= 8 && !cursor.includes(' ')) {
+    return {
+      lastId: cursor,
+      direction: 'forward',
+      timestamp: Date.now(),
+    }
+  }
+
+  return null
 }
 
 /**
