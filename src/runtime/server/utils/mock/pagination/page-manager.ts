@@ -50,6 +50,9 @@ export class PagePaginationManager {
       ttl = this.config.cacheTTL,
     } = options
 
+    // 모델의 ID 필드명 가져오기 (SchemaMockGenerator와 일관성 유지)
+    const idFieldName = this.generator.findIdFieldName(modelName) ?? 'id'
+
     // 스냅샷 조회 또는 생성
     let snapshot: PaginationSnapshot
     if (snapshotId) {
@@ -58,11 +61,11 @@ export class PagePaginationManager {
         snapshot = existing
       }
       else {
-        snapshot = this.snapshotStore.getOrCreate(modelName, seed, total, { cache, ttl })
+        snapshot = this.snapshotStore.getOrCreate(modelName, seed, total, { cache, ttl, idFieldName })
       }
     }
     else {
-      snapshot = this.snapshotStore.getOrCreate(modelName, seed, total, { cache, ttl })
+      snapshot = this.snapshotStore.getOrCreate(modelName, seed, total, { cache, ttl, idFieldName })
     }
 
     // 페이지 범위 계산
@@ -124,6 +127,9 @@ export class PagePaginationManager {
       ttl = this.config.cacheTTL,
     } = options
 
+    // 모델의 ID 필드명 가져오기 (SchemaMockGenerator와 일관성 유지)
+    const idFieldName = this.generator.findIdFieldName(modelName) ?? 'id'
+
     // 스냅샷 조회 또는 생성
     let snapshot: PaginationSnapshot
     if (snapshotId) {
@@ -132,11 +138,11 @@ export class PagePaginationManager {
         snapshot = existing
       }
       else {
-        snapshot = this.snapshotStore.getOrCreate(modelName, seed, total, { cache, ttl })
+        snapshot = this.snapshotStore.getOrCreate(modelName, seed, total, { cache, ttl, idFieldName })
       }
     }
     else {
-      snapshot = this.snapshotStore.getOrCreate(modelName, seed, total, { cache, ttl })
+      snapshot = this.snapshotStore.getOrCreate(modelName, seed, total, { cache, ttl, idFieldName })
     }
 
     // 범위 계산

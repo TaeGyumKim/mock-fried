@@ -6,8 +6,8 @@
  * Cursor 페이로드 - 연결성 있는 cursor 데이터
  */
 export interface CursorPayload {
-  /** 마지막 아이템 ID (anchor) */
-  lastId: string
+  /** 마지막 아이템 ID (anchor) - string 또는 number 타입 지원 */
+  lastId: string | number
   /** 방향: forward (다음) | backward (이전) */
   direction: 'forward' | 'backward'
   /** 스냅샷 ID (옵션) */
@@ -32,8 +32,10 @@ export interface PaginationSnapshot {
   seed: string
   /** 총 아이템 수 */
   total: number
-  /** 아이템 ID 목록 (순서 보장) */
-  itemIds: string[]
+  /** 아이템 ID 목록 (순서 보장) - string 또는 number 타입 지원 */
+  itemIds: (string | number)[]
+  /** ID 필드명 (모델의 실제 ID 필드) */
+  idFieldName: string
   /** 생성 시간 */
   createdAt: number
   /** 만료 시간 (옵션) */

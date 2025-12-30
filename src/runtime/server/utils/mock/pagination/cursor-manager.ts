@@ -27,14 +27,15 @@ export function encodeCursor(payload: CursorPayload): string {
  * - base64url 인코딩된 CursorPayload JSON
  * - Legacy base64 인코딩된 인덱스 번호
  * - Raw UUID/ID 문자열 (직접 ID로 사용)
+ * - Raw 숫자 (numeric ID 직접 사용)
  */
 export function decodeCursor(cursor: string): CursorPayload | null {
   // 1. base64url 인코딩된 JSON CursorPayload 시도
   try {
     const json = Buffer.from(cursor, 'base64url').toString('utf-8')
     const parsed = JSON.parse(json) as CursorPayload
-    // 유효한 CursorPayload인지 확인
-    if (parsed && typeof parsed.lastId === 'string' && parsed.direction) {
+    // 유효한 CursorPayload인지 확인 (lastId는 string 또는 number)
+    if (parsed && (typeof parsed.lastId === 'string' || typeof parsed.lastId === 'number') && parsed.direction) {
       return parsed
     }
   }
@@ -58,7 +59,17 @@ export function decodeCursor(cursor: string): CursorPayload | null {
     // Ignore - try other formats
   }
 
-  // 3. Raw ID 문자열 (UUID, ULID 등) - 직접 ID로 사용
+  // 3. Raw numeric ID (숫자 문자열인 경우 숫자로 변환)
+  const numericId = Number(cursor)
+  if (!Number.isNaN(numericId) && cursor === String(numericId)) {
+    return {
+      lastId: numericId,
+      direction: 'forward',
+      timestamp: Date.now(),
+    }
+  }
+
+  // 4. Raw ID 문자열 (UUID, ULID 등) - 직접 ID로 사용
   // UUID 패턴: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
   // ULID 패턴: 26자리 영숫자
   // NanoID 패턴: 21자리 영숫자+특수문자
@@ -119,6 +130,9 @@ export class CursorPaginationManager {
       ttl,
     } = options
 
+    // 모델의 ID 필드명 가져오기 (SchemaMockGenerator와 일관성 유지)
+    const idFieldName = this.generator.findIdFieldName(modelName) ?? 'id'
+
     // 스냅샷 조회 또는 생성
     let snapshot: PaginationSnapshot
     if (snapshotId) {
@@ -127,11 +141,11 @@ export class CursorPaginationManager {
         snapshot = existing
       }
       else {
-        snapshot = this.snapshotStore.getOrCreate(modelName, seed, total, { cache, ttl })
+        snapshot = this.snapshotStore.getOrCreate(modelName, seed, total, { cache, ttl, idFieldName })
       }
     }
     else {
-      snapshot = this.snapshotStore.getOrCreate(modelName, seed, total, { cache, ttl })
+      snapshot = this.snapshotStore.getOrCreate(modelName, seed, total, { cache, ttl, idFieldName })
     }
 
     // Cursor 파싱
@@ -147,13 +161,15 @@ export class CursorPaginationManager {
           // 만료된 cursor - 처음부터 시작
           startIndex = 0
         }
-        else if (cursorPayload.lastId.startsWith('legacy-')) {
+        else if (typeof cursorPayload.lastId === 'string' && cursorPayload.lastId.startsWith('legacy-')) {
           // Legacy cursor format
           startIndex = Number.parseInt(cursorPayload.lastId.replace('legacy-', ''), 10)
         }
         else {
           // ID 기반 cursor - anchor 아이템 찾기
-          const anchorIndex = snapshot.itemIds.findIndex(id => id === cursorPayload!.lastId)
+          // 타입이 다른 경우에도 매칭하기 위해 String으로 변환하여 비교
+          const targetId = String(cursorPayload.lastId)
+          const anchorIndex = snapshot.itemIds.findIndex(id => String(id) === targetId)
 
           if (anchorIndex !== -1) {
             startIndex = cursorPayload.direction === 'forward'
@@ -161,10 +177,8 @@ export class CursorPaginationManager {
               : Math.max(0, anchorIndex - limit)
           }
           else {
-            // Anchor를 찾을 수 없음 - timestamp 기반 fallback
-            // 비율로 추정 (timestamp가 생성 시간에서 얼마나 지났는지)
-            const elapsedRatio = Math.min(1, (cursorPayload.timestamp - snapshot.createdAt) / (snapshot.expiresAt || Date.now() - snapshot.createdAt))
-            startIndex = Math.floor(elapsedRatio * snapshot.total)
+            // Anchor를 찾을 수 없음 - 처음부터 시작 (fallback)
+            startIndex = 0
           }
         }
       }
@@ -174,7 +188,7 @@ export class CursorPaginationManager {
     const endIndex = Math.min(startIndex + limit, snapshot.total)
     const pageItemIds = snapshot.itemIds.slice(startIndex, endIndex)
 
-    // 아이템 생성
+    // 아이템 생성 - itemId의 타입(string|number)을 유지하여 전달
     const items = pageItemIds.map((itemId, i) =>
       this.generator.generateOneWithId(modelName, itemId, `${seed}-${itemId}`, startIndex + i),
     )
@@ -194,7 +208,7 @@ export class CursorPaginationManager {
         direction: 'forward',
         snapshotId: snapshot.id,
         timestamp: Date.now(),
-        sortField: this.cursorConfig.includeSortInfo ? 'id' : undefined,
+        sortField: this.cursorConfig.includeSortInfo ? snapshot.idFieldName : undefined,
         sortOrder: this.cursorConfig.includeSortInfo ? 'asc' : undefined,
       })
     }
@@ -205,7 +219,7 @@ export class CursorPaginationManager {
         direction: 'backward',
         snapshotId: snapshot.id,
         timestamp: Date.now(),
-        sortField: this.cursorConfig.includeSortInfo ? 'id' : undefined,
+        sortField: this.cursorConfig.includeSortInfo ? snapshot.idFieldName : undefined,
         sortOrder: this.cursorConfig.includeSortInfo ? 'asc' : undefined,
       })
     }

@@ -72,7 +72,7 @@ export function inferValueByFieldName(
   }
 
   // 연월 (YYYYMM 형식)
-  if (name.includes('yearmonth') || name.includes('month') && !name.includes('months')) {
+  if (name.includes('yearmonth') || (name.includes('month') && !name.includes('months'))) {
     const year = 2024 + rng.nextInt(0, 1)
     const month = rng.nextInt(1, 12)
     return year * 100 + month
@@ -498,8 +498,12 @@ export class SchemaMockGenerator {
   /**
    * ID 부여된 단일 객체 생성 (Pagination용)
    * 주어진 ID를 모델의 ID 필드에 설정하여 cursor와 응답 ID가 일치하도록 함
+   * @param modelName 모델명
+   * @param itemId 아이템 ID (string 또는 number)
+   * @param seed 생성 seed
+   * @param index 인덱스
    */
-  generateOneWithId(modelName: string, itemId: string, seed?: string | number, index: number = 0): Record<string, unknown> {
+  generateOneWithId(modelName: string, itemId: string | number, seed?: string | number, index: number = 0): Record<string, unknown> {
     const item = this.generateOne(modelName, seed ?? `${modelName}-${itemId}`, index)
 
     // ID 필드 찾기 및 주어진 ID로 덮어쓰기
@@ -522,8 +526,9 @@ export class SchemaMockGenerator {
 
   /**
    * 모델의 ID 필드명 찾기 (MockIdConfig 기반)
+   * public으로 변경하여 CursorPaginationManager에서 사용 가능
    */
-  private findIdFieldName(modelName: string): string | null {
+  findIdFieldName(modelName: string): string | null {
     const schema = this.models.get(modelName)
     if (!schema) return null
 
