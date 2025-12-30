@@ -8,7 +8,8 @@
   "packageManager": "yarn@4.12.0",
   "workspaces": [
     "playground-openapi",
-    "playground-proto"
+    "playground-proto",
+    "packages/*"
   ],
   "exports": {
     ".": {
