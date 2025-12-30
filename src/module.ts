@@ -180,7 +180,6 @@ export default defineNuxtModule<MockModuleOptions>({
       protoPath,
       pagination: options.pagination,
       cursor: options.cursor,
-      responseFormat: options.responseFormat ?? 'auto',
     } satisfies MockRuntimeConfig
 
     // 클라이언트 공개 런타임 설정
@@ -196,6 +195,14 @@ export default defineNuxtModule<MockModuleOptions>({
       handler: resolver.resolve('./runtime/server/handlers/schema'),
     })
     logger.info(`Schema handler registered at GET ${prefix}/__schema`)
+
+    // 캐시 초기화 핸들러 등록
+    addServerHandler({
+      route: `${prefix}/__reset`,
+      method: 'get',
+      handler: resolver.resolve('./runtime/server/handlers/reset'),
+    })
+    logger.info(`Reset handler registered at GET ${prefix}/__reset`)
 
     // RPC 핸들러 등록 (더 구체적인 라우트)
     if (protoPath) {
