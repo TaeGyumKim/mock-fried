@@ -29,11 +29,18 @@ export default defineNuxtPlugin(() => {
     // GET이 아닌 경우 body 추가
     if (options?.body && fetchOptions.method !== 'GET') {
       fetchOptions.body = JSON.stringify(options.body)
+      fetchOptions.headers = {
+        'Content-Type': 'application/json',
+        ...fetchOptions.headers,
+      }
     }
 
-    // 헤더 추가
+    // 사용자 헤더 추가 (기존 헤더 덮어쓰기 가능)
     if (options?.headers) {
-      fetchOptions.headers = options.headers
+      fetchOptions.headers = {
+        ...fetchOptions.headers,
+        ...options.headers,
+      }
     }
 
     // 쿼리 파라미터 처리
