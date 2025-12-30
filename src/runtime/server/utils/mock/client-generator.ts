@@ -66,18 +66,35 @@ export function inferValueByFieldName(
     return `샘플 ${fieldName} #${rng.nextInt(1, 100)}`
   }
 
-  // 상태
-  if (name.includes('status')) {
-    return rng.pick(['ACTIVE', 'INACTIVE', 'PENDING', 'COMPLETED'])
+  // 상태/단계
+  if (name.includes('status') || name.includes('state') || name.includes('stage')) {
+    return rng.pick(['ACTIVE', 'INACTIVE', 'PENDING', 'COMPLETED', 'APPROVED', 'REJECTED'])
+  }
+
+  // 연월 (YYYYMM 형식)
+  if (name.includes('yearmonth') || name.includes('month') && !name.includes('months')) {
+    const year = 2024 + rng.nextInt(0, 1)
+    const month = rng.nextInt(1, 12)
+    return year * 100 + month
+  }
+
+  // 메모/노트/메시지
+  if (name.includes('note') || name.includes('memo') || name.includes('remark') || name.includes('comment') || name.includes('message')) {
+    return `${fieldName} 내용입니다. #${rng.nextInt(1, 100)}`
   }
 
   // 카운트/수량
-  if (name.includes('count') || name.includes('quantity') || name.includes('amount') || name.includes('num')) {
+  if (name.includes('count') || name.includes('quantity') || name.includes('num')) {
     return rng.nextInt(0, 100)
   }
 
-  // 가격
-  if (name.includes('price') || name.includes('cost') || name.includes('fee') || name.includes('amount')) {
+  // 비율/퍼센트
+  if (name.includes('rate') || name.includes('ratio') || name.includes('percent')) {
+    return `${rng.nextInt(1, 100)}`
+  }
+
+  // 금액 (amount는 가격보다 넓은 의미)
+  if (name.includes('amount') || name.includes('price') || name.includes('cost') || name.includes('fee') || name.includes('commission')) {
     return rng.nextInt(1000, 100000)
   }
 
@@ -87,9 +104,25 @@ export function inferValueByFieldName(
   if (name === 'total' || name === 'totalcount' || name === 'totalitems') return rng.nextInt(50, 500)
   if (name === 'totalpages') return rng.nextInt(3, 25)
 
+  // 순서/시퀀스
+  if (name.includes('sequence') || name.includes('order') || name.includes('priority') || name.includes('rank') || name === 'sort') {
+    return rng.nextInt(1, 100)
+  }
+
   // boolean
   if (name.startsWith('is') || name.startsWith('has') || name.startsWith('can') || name.startsWith('should') || name.startsWith('will')) {
     return rng.next() > 0.5
+  }
+
+  // 결과/성공 여부 (boolean)
+  if (name === 'result' || name === 'success' || name.includes('enabled') || name.includes('valid') || name.includes('complete')) {
+    return rng.next() > 0.5
+  }
+
+  // 담당자/소유자
+  if (name.includes('owner') || name.includes('manager') || name.includes('author') || name.includes('writer') || name.includes('creator')) {
+    const names = ['김철수', '이영희', '박민수', 'John', 'Jane']
+    return rng.pick(names)
   }
 
   // 주소 관련
@@ -109,6 +142,11 @@ export function inferValueByFieldName(
     return `${rng.nextInt(10000, 99999)}`
   }
 
+  // 사업자등록번호
+  if (name.includes('bizreg') || name.includes('regno')) {
+    return `${rng.nextInt(100, 999)}-${rng.nextInt(10, 99)}-${rng.nextInt(10000, 99999)}`
+  }
+
   // 기타 일반적인 필드들
   if (name.includes('code')) {
     return `CODE-${rng.nextInt(1000, 9999)}`
@@ -118,12 +156,47 @@ export function inferValueByFieldName(
     return rng.pick(['TYPE_A', 'TYPE_B', 'TYPE_C'])
   }
 
+  // 태그/라벨
+  if (name.includes('tag') || name.includes('label')) {
+    return rng.pick(['태그1', '태그2', '태그3', 'Tag A', 'Tag B'])
+  }
+
+  // 스케일/레벨/등급
+  if (name.includes('scale') || name.includes('level') || name.includes('grade') || name.includes('tier')) {
+    return rng.pick(['SMALL', 'MEDIUM', 'LARGE', 'LEVEL_1', 'LEVEL_2', 'LEVEL_3'])
+  }
+
+  // 기간 (일/월 수)
+  if (name.includes('days') || name.includes('months') || name.includes('weeks') || name.includes('years')) {
+    return rng.nextInt(1, 30)
+  }
+
+  // 특정 일 (payday 등)
+  if (name.includes('day') && !name.includes('days')) {
+    return rng.nextInt(1, 28)
+  }
+
+  // 이유/사유
+  if (name.includes('reason') || name.includes('cause')) {
+    return rng.pick(['사용자 요청', '시스템 처리', '기간 만료', '정책 변경'])
+  }
+
+  // 비밀번호 (마스킹)
+  if (name.includes('password') || name.includes('pwd')) {
+    return '********'
+  }
+
   if (name.includes('version')) {
     return `${rng.nextInt(1, 10)}.${rng.nextInt(0, 9)}.${rng.nextInt(0, 99)}`
   }
 
   if (name.includes('token') || name.includes('key') || name.includes('secret')) {
     return rng.uuid()
+  }
+
+  // 파일/첨부파일
+  if (name.includes('file') || name.includes('attachment') || name.includes('document')) {
+    return `https://storage.example.com/files/${rng.hashId(12)}.pdf`
   }
 
   return null
@@ -169,6 +242,7 @@ export function generateValueByType(
 
 /**
  * 필드명에서 타입을 추측하여 적절한 값 생성
+ * (unknown/any/object 타입인 경우 사용)
  */
 export function inferTypeFromFieldName(
   fieldName: string,
@@ -183,27 +257,53 @@ export function inferTypeFromFieldName(
     return generateIdValue(fieldName, index, rng.hashId(16), idConfig)
   }
 
+  // 연월 (YYYYMM 형식)
+  if (name.includes('yearmonth')) {
+    const year = 2024 + rng.nextInt(0, 1)
+    const month = rng.nextInt(1, 12)
+    return year * 100 + month
+  }
+
   // 숫자 관련
   if (name.includes('count') || name.includes('num') || name.includes('amount')
     || name.includes('size') || name.includes('total') || name.includes('views')
     || name.includes('likes') || name.includes('price') || name.includes('age')
-    || name.includes('quantity') || name.includes('index') || name.includes('order')) {
+    || name.includes('quantity') || name.includes('index') || name.includes('order')
+    || name.includes('sequence') || name.includes('priority') || name.includes('rank')
+    || name.includes('fee') || name.includes('commission')) {
     return rng.nextInt(0, 1000)
+  }
+
+  // 비율/퍼센트
+  if (name.includes('rate') || name.includes('ratio') || name.includes('percent')) {
+    return `${rng.nextInt(1, 100)}`
   }
 
   // boolean 관련
   if (name.startsWith('is') || name.startsWith('has') || name.startsWith('can')
     || name.startsWith('should') || name.startsWith('will') || name.includes('enabled')
-    || name.includes('active') || name.includes('visible') || name.includes('valid')) {
+    || name.includes('active') || name.includes('visible') || name.includes('valid')
+    || name === 'result' || name === 'success' || name.includes('complete')) {
     return rng.next() > 0.5
   }
 
   // 날짜 관련
   if (name.includes('date') || name.endsWith('at') || name.includes('time')
-    || name.includes('created') || name.includes('updated') || name.includes('modified')) {
+    || name.includes('created') || name.includes('updated') || name.includes('modified')
+    || name.includes('deadline')) {
     const now = Date.now()
     const offset = rng.nextInt(-365, 30) * 24 * 60 * 60 * 1000
     return new Date(now + offset).toISOString()
+  }
+
+  // 기간 (일/월 수)
+  if (name.includes('days') || name.includes('months') || name.includes('weeks') || name.includes('years')) {
+    return rng.nextInt(1, 30)
+  }
+
+  // 특정 일 (payday 등)
+  if (name.includes('day') && !name.includes('days')) {
+    return rng.nextInt(1, 28)
   }
 
   // URL 관련
@@ -215,6 +315,26 @@ export function inferTypeFromFieldName(
   if (name.includes('image') || name.includes('thumbnail') || name.includes('avatar')
     || name.includes('photo') || name.includes('picture')) {
     return `https://picsum.photos/seed/${rng.nextInt(1, 1000)}/200/200`
+  }
+
+  // 파일/첨부파일
+  if (name.includes('file') || name.includes('attachment') || name.includes('document')) {
+    return `https://storage.example.com/files/${rng.hashId(12)}.pdf`
+  }
+
+  // 상태/단계
+  if (name.includes('status') || name.includes('state') || name.includes('stage')) {
+    return rng.pick(['ACTIVE', 'INACTIVE', 'PENDING', 'COMPLETED'])
+  }
+
+  // 스케일/레벨
+  if (name.includes('scale') || name.includes('level') || name.includes('grade') || name.includes('tier')) {
+    return rng.pick(['SMALL', 'MEDIUM', 'LARGE'])
+  }
+
+  // 이유/사유
+  if (name.includes('reason') || name.includes('cause')) {
+    return rng.pick(['사용자 요청', '시스템 처리', '기간 만료'])
   }
 
   // 기본값: 문자열
@@ -301,6 +421,11 @@ export function extractDataModelName(
 }
 
 /**
+ * 순환 참조 감지를 위한 최대 깊이
+ */
+const MAX_RECURSION_DEPTH = 5
+
+/**
  * 스키마 기반 Mock 데이터 생성기 클래스
  */
 export class SchemaMockGenerator {
@@ -317,8 +442,31 @@ export class SchemaMockGenerator {
    * 모델 스키마 기반 단일 객체 생성
    */
   generateOne(modelName: string, seed?: string | number, index: number = 0): Record<string, unknown> {
+    return this.generateOneInternal(modelName, seed, index, new Set<string>(), 0)
+  }
+
+  /**
+   * 내부 구현: 순환 참조 감지를 위한 재귀 생성
+   */
+  private generateOneInternal(
+    modelName: string,
+    seed: string | number | undefined,
+    index: number,
+    visitedModels: Set<string>,
+    depth: number,
+  ): Record<string, unknown> {
     const schema = this.models.get(modelName)
     if (!schema) {
+      return {}
+    }
+
+    // 순환 참조 감지 - 같은 모델을 다시 만나면 빈 객체 반환
+    if (visitedModels.has(modelName) && depth > 1) {
+      return {}
+    }
+
+    // 최대 깊이 초과시 빈 객체 반환
+    if (depth >= MAX_RECURSION_DEPTH) {
       return {}
     }
 
@@ -328,11 +476,15 @@ export class SchemaMockGenerator {
       return { value: rng.pick(schema.enumValues) }
     }
 
+    // 현재 모델을 방문 목록에 추가
+    const newVisited = new Set(visitedModels)
+    newVisited.add(modelName)
+
     const rng = new SeededRandom(seed ?? `${modelName}-${index}`)
     const result: Record<string, unknown> = {}
 
     for (const field of schema.fields) {
-      const value = this.generateField(field, rng, index)
+      const value = this.generateFieldInternal(field, rng, index, newVisited, depth)
       if (value !== undefined) {
         // Use jsonKey for the actual JSON output, fallback to name
         const outputKey = field.jsonKey || field.name
@@ -397,9 +549,15 @@ export class SchemaMockGenerator {
   }
 
   /**
-   * 필드 값 생성
+   * 필드 값 생성 (순환 참조 감지 포함)
    */
-  private generateField(field: ParsedModelField, rng: SeededRandom, index: number): unknown {
+  private generateFieldInternal(
+    field: ParsedModelField,
+    rng: SeededRandom,
+    index: number,
+    visitedModels: Set<string>,
+    depth: number,
+  ): unknown {
     // optional이고 70% 확률로 undefined가 아님
     if (!field.required && rng.next() > 0.7) {
       return undefined
@@ -415,15 +573,20 @@ export class SchemaMockGenerator {
         return field.isArray ? [value] : value
       }
 
+      // 순환 참조 감지 - 이미 방문한 모델이면 빈 객체/배열 반환
+      if (visitedModels.has(field.refType)) {
+        return field.isArray ? [] : {}
+      }
+
       // 객체 참조
       if (field.isArray) {
         const count = rng.nextInt(1, 3)
         return Array.from({ length: count }, (_, i) =>
-          this.generateOne(field.refType!, `${field.refType}-${index}-${i}`, i),
+          this.generateOneInternal(field.refType!, `${field.refType}-${index}-${i}`, i, visitedModels, depth + 1),
         )
       }
 
-      return this.generateOne(field.refType, `${field.refType}-${index}`, index)
+      return this.generateOneInternal(field.refType, `${field.refType}-${index}`, index, visitedModels, depth + 1)
     }
 
     // 배열인 경우
