@@ -1,0 +1,423 @@
+/**
+ * OpenAPI 생성 클라이언트 패키지 파서
+ * TypeScript로 생성된 API 클라이언트에서 엔드포인트 및 모델 정보를 추출
+ */
+/* eslint-disable regexp/no-super-linear-backtracking, regexp/optimal-quantifier-concatenation, regexp/no-unused-capturing-group */
+import { readFileSync, readdirSync, existsSync } from 'node:fs'
+import { resolve, join } from 'pathe'
+import type {
+  ParsedEndpoint,
+  ParsedParameter,
+  ParsedModelSchema,
+  ParsedModelField,
+  ParsedClientPackage,
+  OpenApiClientConfig,
+} from '../../../types'
+
+/**
+ * API 파일에서 엔드포인트 정보 추출
+ */
+function parseApiFile(filePath: string, fileName: string): ParsedEndpoint[] {
+  const content = readFileSync(filePath, 'utf-8')
+  const endpoints: ParsedEndpoint[] = []
+
+  // API 클래스명 추출
+  const classMatch = content.match(/export class (\w+Api)/)
+  const apiClassName = classMatch?.[1] || fileName.replace('.ts', '')
+
+  // Raw 메서드 패턴 매칭 (path, method 정보 포함)
+  // async adminGetAccountRaw(...): Promise<runtime.ApiResponse<AdminGetAccount200Response>>
+  // async listUserTokensRaw(...): Promise<runtime.ApiResponse<Array<ClientTokenResponse>>>
+  // 멀티라인 JSDoc 지원: /** ... */ 전체를 캡처한 후 마지막 줄에서 summary 추출
+  // 중첩된 제네릭 타입 지원: Array<Type> 형태를 올바르게 캡처
+  const rawMethodRegex = /\/\*\*([\s\S]*?)\*\/\s*\n\s*async\s+(\w+)Raw\([^)]*\):\s*Promise<runtime\.ApiResponse<((?:[^<>]|<[^>]*>)+)>>/g
+
+  // 각 Raw 메서드의 본문에서 path, method 추출
+  const methodBodyRegex = /async\s+(\w+)Raw\([^{]+\{([\s\S]*?)return new runtime\./g
+
+  let match
+  const methodBodies = new Map<string, string>()
+
+  // 먼저 메서드 본문들을 수집
+  while ((match = methodBodyRegex.exec(content)) !== null) {
+    const methodName = match[1]
+    const body = match[2]
+    methodBodies.set(methodName, body)
+  }
+
+  // JSDoc과 메서드 시그니처 매칭
+  rawMethodRegex.lastIndex = 0
+  while ((match = rawMethodRegex.exec(content)) !== null) {
+    const jsdocContent = match[1]
+    const operationId = match[2]
+    const responseType = match[3]
+
+    // JSDoc에서 summary 추출 (마지막 * 라인 또는 첫 번째 의미있는 라인)
+    const jsdocLines = jsdocContent.split('\n')
+      .map(line => line.replace(/^\s*\*\s?/, '').trim())
+      .filter(line => line.length > 0 && !line.startsWith('@'))
+
+    // 마지막 라인을 summary로 사용 (보통 짧은 설명이 마지막에 있음)
+    const summary = jsdocLines[jsdocLines.length - 1] || jsdocLines[0] || operationId
+
+    const body = methodBodies.get(operationId)
+    if (!body) continue
+
+    // path 추출
+    const pathMatch = body.match(/path:\s*`([^`]+)`/)
+    if (!pathMatch) continue
+
+    let path = pathMatch[1]
+    // ${...} 형태를 {param} 형태로 변환
+    path = path.replace(/\$\{[^}]+\}/g, (match) => {
+      const paramName = match.match(/\["?(\w+)"?\]/)?.[1] || 'param'
+      return `{${paramName}}`
+    })
+
+    // method 추출
+    const methodMatch = body.match(/method:\s*'(\w+)'/)
+    const method = methodMatch?.[1] || 'GET'
+
+    // Path 파라미터 추출 (path에서 {param} 형태)
+    const pathParams: ParsedParameter[] = []
+    const pathParamMatches = path.matchAll(/\{(\w+)\}/g)
+    for (const pm of pathParamMatches) {
+      pathParams.push({
+        name: pm[1],
+        type: 'string',
+        required: true,
+      })
+    }
+
+    // Query 파라미터 추출
+    const queryParams: ParsedParameter[] = []
+    const queryParamRegex = /if\s*\(requestParameters\.(\w+)\s*!==\s*undefined\)\s*\{\s*queryParameters\['(\w+)'\]/g
+    let qpm
+    while ((qpm = queryParamRegex.exec(body)) !== null) {
+      queryParams.push({
+        name: qpm[2],
+        type: 'string',
+        required: false,
+      })
+    }
+
+    // Request Body 타입 추출
+    let requestBodyType: string | undefined
+    const bodyMatch = body.match(/body:\s*(\w+)ToJSON\(requestParameters\.(\w+)\)/)
+    if (bodyMatch) {
+      requestBodyType = bodyMatch[1]
+    }
+
+    endpoints.push({
+      path,
+      method: method.toUpperCase(),
+      operationId,
+      summary,
+      apiClassName,
+      pathParams,
+      queryParams,
+      requestBodyType,
+      responseType,
+    })
+  }
+
+  return endpoints
+}
+
+/**
+ * 타입 문자열 정규화 및 분석
+ */
+function analyzeType(rawType: string): {
+  type: string
+  isArray: boolean
+  refType?: string
+} {
+  const primitives = ['string', 'number', 'boolean', 'Date', 'object', 'any', 'unknown', 'void', 'null', 'undefined']
+
+  // 배열 여부 확인
+  const isArray = rawType.startsWith('Array<') || rawType.endsWith('[]')
+  let type = rawType
+
+  if (isArray) {
+    // Array<Type> 또는 Type[] 에서 Type 추출
+    const arrayTypeMatch = rawType.match(/Array<(.+)>/) || rawType.match(/(.+)\[\]/)
+    if (arrayTypeMatch) {
+      type = arrayTypeMatch[1].trim()
+    }
+  }
+
+  // 참조 타입 확인 (primitive가 아닌 경우)
+  let refType: string | undefined
+  if (!primitives.includes(type) && !type.includes('|') && !type.includes('&')) {
+    refType = type
+  }
+
+  return { type, isArray, refType }
+}
+
+/**
+ * 모델 파일에서 스키마 정보 추출
+ * 3가지 전략 사용: 1) ToJSON 함수 파싱 2) FromJSONTyped 파싱 3) Interface 직접 파싱
+ */
+function parseModelFile(filePath: string, fileName: string): ParsedModelSchema | undefined {
+  const content = readFileSync(filePath, 'utf-8')
+  const modelName = fileName.replace('.ts', '')
+
+  // Interface가 있는지 먼저 확인 (interface가 있으면 enum-only가 아님)
+  const hasInterface = content.includes(`export interface ${modelName}`)
+
+  // Enum 체크 (as const 패턴) - 파일이 enum만 있는 경우에만 적용
+  // 예: OtpType.ts는 enum만 있지만, DailyAndConcernPostSummaryResponse.ts는 interface + 내부 enum이 있음
+  if (!hasInterface) {
+    // enum 이름이 modelName과 일치하는지 확인
+    const enumRegex = new RegExp(`export\\s+const\\s+(${modelName})\\s*=\\s*\\{([^}]+)\\}\\s*as\\s*const`)
+    const enumMatch = content.match(enumRegex)
+    if (enumMatch) {
+      const enumValues: string[] = []
+      const valueMatches = enumMatch[2].matchAll(/(\w+):\s*['"]([^'"]+)['"]/g)
+      for (const vm of valueMatches) {
+        enumValues.push(vm[2])
+      }
+      if (enumValues.length > 0) {
+        return {
+          name: modelName,
+          fields: [],
+          enumValues,
+        }
+      }
+    }
+  }
+
+  const fields: ParsedModelField[] = []
+
+  // JSON 키 매핑 저장 (propertyName -> jsonKey)
+  const jsonKeyMap = new Map<string, string>()
+
+  // 전략 1: ToJSON 함수에서 필드 추출 및 JSON 키 매핑 파악
+  // return { 'json_key': value.propertyName, ... }
+  const toJsonMatch = content.match(/export\s+function\s+\w+ToJSON[^{]*\{[\s\S]*?return\s*\{([\s\S]*?)\};?\s*\}/)
+  if (toJsonMatch) {
+    const returnBody = toJsonMatch[1]
+    // 'json_key': value.propertyName 패턴 - JSON 키와 프로퍼티명 둘 다 캡처
+    const fieldMatches = returnBody.matchAll(/['"](\w+)['"]\s*:\s*(?:value\.(\w+)|[^,\n]*?value\.(\w+))/g)
+
+    for (const fm of fieldMatches) {
+      const jsonKey = fm[1]!
+      const propertyName = fm[2] || fm[3]
+      if (!propertyName) continue
+
+      // JSON 키 매핑 저장
+      jsonKeyMap.set(propertyName, jsonKey)
+
+      // 이미 추가된 필드는 건너뛰기
+      if (fields.some(f => f.name === propertyName)) continue
+
+      fields.push({
+        name: propertyName,
+        jsonKey: jsonKey !== propertyName ? jsonKey : undefined,
+        type: 'unknown', // ToJSON에서는 타입을 알 수 없음, 나중에 interface에서 보완
+        required: false,
+        isArray: false,
+      })
+    }
+  }
+
+  // 전략 2: FromJSONTyped 함수에서 타입 힌트 추출
+  // 'fieldName': !exists(json, 'fieldName') ? undefined : (new Date(json['fieldName'])),
+  const fromJsonMatch = content.match(/export\s+function\s+\w+FromJSONTyped[^{]*\{[\s\S]*?return\s*\{([\s\S]*?)\};?\s*\}/)
+  if (fromJsonMatch) {
+    const returnBody = fromJsonMatch[1]
+
+    // Date 타입 감지: (new Date(json['fieldName']))
+    const dateFields = new Set<string>()
+    const dateMatches = returnBody.matchAll(/['"](\w+)['"]\s*:.*?new\s+Date\(/g)
+    for (const dm of dateMatches) {
+      dateFields.add(dm[1])
+    }
+
+    // 배열 타입 감지: (json['fieldName'] as Array<any>).map(...)
+    const arrayFields = new Set<string>()
+    const arrayMatches = returnBody.matchAll(/['"](\w+)['"]\s*:.*?\(json\[['"](\w+)['"]\]\s*as\s*Array/g)
+    for (const am of arrayMatches) {
+      arrayFields.add(am[1])
+    }
+
+    // 참조 타입 감지: SomeTypeFromJSON(json['fieldName'])
+    const refTypeMap = new Map<string, string>()
+    const refMatches = returnBody.matchAll(/['"](\w+)['"]\s*:.*?(\w+)FromJSON\(json\[/g)
+    for (const rm of refMatches) {
+      if (!rm[2].includes('Array')) {
+        refTypeMap.set(rm[1], rm[2])
+      }
+    }
+
+    // 배열 참조 타입 감지: .map(SomeTypeFromJSON)
+    const arrayRefMatches = returnBody.matchAll(/['"](\w+)['"]\s*:.*?\.map\((\w+)FromJSON\)/g)
+    for (const arm of arrayRefMatches) {
+      refTypeMap.set(arm[1], arm[2])
+      arrayFields.add(arm[1])
+    }
+
+    // 기존 필드 정보 업데이트
+    for (const field of fields) {
+      if (dateFields.has(field.name)) {
+        field.type = 'Date'
+      }
+      if (arrayFields.has(field.name)) {
+        field.isArray = true
+      }
+      const refType = refTypeMap.get(field.name)
+      if (refType) {
+        field.refType = refType
+        field.type = refType
+      }
+    }
+  }
+
+  // 전략 3: Interface 직접 파싱으로 타입 정보 보완
+  const interfaceMatch = content.match(/export\s+interface\s+(\w+)(?:\s+extends\s+[\w,\s]+)?\s*\{([\s\S]*?)\n\}/)
+  if (interfaceMatch) {
+    const interfaceBody = interfaceMatch[2]
+
+    // 간단한 필드 파싱: fieldName?: Type;
+    const simpleFieldRegex = /^\s+(\w+)(\?)?:\s*([^;]+);/gm
+    let sfm
+    while ((sfm = simpleFieldRegex.exec(interfaceBody)) !== null) {
+      const name = sfm[1]
+      const optional = sfm[2] === '?'
+      const rawType = sfm[3].trim()
+
+      const { type, isArray, refType } = analyzeType(rawType)
+
+      // 기존 필드 업데이트 또는 새로 추가
+      const existingField = fields.find(f => f.name === name)
+      if (existingField) {
+        // ToJSON/FromJSON에서 이미 파싱된 필드 정보 보완
+        if (existingField.type === 'unknown') {
+          existingField.type = type
+        }
+        existingField.required = !optional
+        if (!existingField.isArray) {
+          existingField.isArray = isArray
+        }
+        if (!existingField.refType && refType) {
+          existingField.refType = refType
+        }
+      }
+      else {
+        // 새 필드 추가 - jsonKeyMap에서 JSON 키 가져오기
+        const jsonKey = jsonKeyMap.get(name)
+        fields.push({
+          name,
+          jsonKey: jsonKey && jsonKey !== name ? jsonKey : undefined,
+          type,
+          required: !optional,
+          isArray,
+          refType,
+        })
+      }
+    }
+  }
+
+  // 필드가 없으면 undefined 반환
+  if (fields.length === 0) {
+    return undefined
+  }
+
+  return {
+    name: modelName,
+    fields,
+  }
+}
+
+/**
+ * 클라이언트 패키지 전체 파싱
+ */
+export function parseClientPackage(
+  packageRoot: string,
+  config?: Partial<OpenApiClientConfig>,
+): ParsedClientPackage {
+  const apisDir = config?.apisDir || 'src/apis'
+  const modelsDir = config?.modelsDir || 'src/models'
+
+  const apisPath = resolve(packageRoot, apisDir)
+  const modelsPath = resolve(packageRoot, modelsDir)
+
+  // 패키지 정보 읽기
+  const pkgJsonPath = join(packageRoot, 'package.json')
+  let pkgInfo = { name: 'unknown', title: undefined as string | undefined, version: undefined as string | undefined }
+  if (existsSync(pkgJsonPath)) {
+    try {
+      const pkgJson = JSON.parse(readFileSync(pkgJsonPath, 'utf-8'))
+      pkgInfo = {
+        name: pkgJson.name || 'unknown',
+        title: pkgJson.description,
+        version: pkgJson.version,
+      }
+    }
+    catch {
+      // ignore
+    }
+  }
+
+  // API 파일들 파싱
+  const endpoints: ParsedEndpoint[] = []
+  if (existsSync(apisPath)) {
+    const apiFiles = readdirSync(apisPath).filter(f => f.endsWith('Api.ts') && f !== 'index.ts')
+    for (const file of apiFiles) {
+      const filePath = join(apisPath, file)
+      const parsed = parseApiFile(filePath, file)
+      endpoints.push(...parsed)
+    }
+  }
+
+  // Model 파일들 파싱
+  const models = new Map<string, ParsedModelSchema>()
+  if (existsSync(modelsPath)) {
+    const modelFiles = readdirSync(modelsPath).filter(f => f.endsWith('.ts') && f !== 'index.ts')
+    for (const file of modelFiles) {
+      const filePath = join(modelsPath, file)
+      const parsed = parseModelFile(filePath, file)
+      if (parsed) {
+        models.set(parsed.name, parsed)
+      }
+    }
+  }
+
+  return {
+    info: pkgInfo,
+    endpoints,
+    models,
+  }
+}
+
+/**
+ * 캐시된 파싱 결과
+ */
+let cachedPackage: ParsedClientPackage | null = null
+let cachedPackagePath: string | null = null
+
+/**
+ * 클라이언트 패키지 파싱 (캐시 지원)
+ */
+export function getClientPackage(
+  packageRoot: string,
+  config?: Partial<OpenApiClientConfig>,
+): ParsedClientPackage {
+  if (cachedPackage && cachedPackagePath === packageRoot) {
+    return cachedPackage
+  }
+
+  cachedPackage = parseClientPackage(packageRoot, config)
+  cachedPackagePath = packageRoot
+
+  return cachedPackage
+}
+
+/**
+ * 캐시 초기화
+ */
+export function clearClientPackageCache(): void {
+  cachedPackage = null
+  cachedPackagePath = null
+}
