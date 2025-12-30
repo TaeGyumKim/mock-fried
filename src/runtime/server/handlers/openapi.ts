@@ -376,10 +376,9 @@ function handleClientPackageRequest(
         }
       }
       else {
-        // cursor가 없으면 기존 방식 (첫 페이지)
-        // PagePaginationManager 사용하여 ID 포함된 아이템 생성
-        const result = pageManager.getPagedResponse(modelName, {
-          page,
+        // cursor가 없으면 첫 페이지 - CursorPaginationManager 사용
+        // 이렇게 하면 cursor/page 모두 동일한 스냅샷과 ID를 사용
+        const result = cursorManager.getCursorPage(modelName, {
           limit,
           total: 100,
           seed,
@@ -395,18 +394,16 @@ function handleClientPackageRequest(
               if (field.name !== listFieldName) {
                 const outputKey = field.jsonKey || field.name
                 if (field.name === 'nextCursor' || field.name === 'cursor') {
-                  // 첫 페이지의 경우 다음 cursor 생성
-                  const lastItem = result.items[result.items.length - 1]
-                  const lastId = lastItem?.id as string | undefined
-                  if (lastId && result.items.length >= limit) {
-                    otherFields[outputKey] = lastId // ID를 cursor로 사용
-                  }
+                  otherFields[outputKey] = result.nextCursor
+                }
+                else if (field.name === 'prevCursor') {
+                  otherFields[outputKey] = result.prevCursor
                 }
                 else if (field.name === 'hasMore') {
-                  otherFields[outputKey] = result.pagination.page < result.pagination.totalPages
+                  otherFields[outputKey] = result.hasMore
                 }
                 else if (field.name === 'total' || field.name === 'totalItems') {
-                  otherFields[outputKey] = result.pagination.total
+                  otherFields[outputKey] = 100
                 }
               }
             }
