@@ -1,4 +1,4 @@
-import { defineEventHandler, getQuery, readBody, createError, getRequestURL } from 'h3'
+import { defineEventHandler, getQuery, readBody, createError } from 'h3'
 import { useRuntimeConfig } from '#imports'
 import { readFileSync } from 'node:fs'
 import yaml from 'js-yaml'
@@ -465,10 +465,9 @@ export default defineEventHandler(async (event) => {
     }
     | undefined
 
-  // 요청 URL에서 prefix 제거
-  const requestUrl = getRequestURL(event)
+  // 요청 경로에서 prefix 제거 (event.path는 URL 파싱 없이 경로만 반환)
   const prefix = mockConfig?.prefix || '/mock'
-  let path = requestUrl.pathname
+  let path = event.path
 
   if (path.startsWith(prefix)) {
     path = path.substring(prefix.length) || '/'
