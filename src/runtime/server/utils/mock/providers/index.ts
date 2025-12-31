@@ -2,6 +2,14 @@
  * ItemProvider 구현체 모듈
  */
 
+// Interfaces (re-export for convenience)
+export type {
+  ItemProvider,
+  ItemProviderOptions,
+  IdGenerator,
+  DefaultIdGeneratorOptions,
+} from '../pagination/interfaces'
+
 // Schema Provider (Client Package Mode)
 export { SchemaItemProvider } from './schema-item-provider'
 
