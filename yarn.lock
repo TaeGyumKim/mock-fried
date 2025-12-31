@@ -6987,6 +6987,7 @@ __metadata:
     pathe: "npm:^2.0.2"
     prettier: "npm:^3.5.3"
     typescript: "npm:~5.9.3"
+    ufo: "npm:^1.6.1"
     vitest: "npm:^4.0.16"
     vue-tsc: "npm:^3.2.1"
   languageName: unknown
