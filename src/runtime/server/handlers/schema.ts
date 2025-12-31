@@ -21,8 +21,20 @@ import { getClientPackage } from '../utils/client-parser'
 
 const logger = consola.withTag('mock-fried')
 
-// ESM 환경에서 require.resolve 사용을 위한 helper
-const _require = createRequire(import.meta.url)
+// ESM 환경에서 require.resolve 사용을 위한 helper (lazy initialization)
+let _require: NodeRequire | null = null
+function getRequire(): NodeRequire {
+  if (!_require) {
+    try {
+      _require = createRequire(import.meta.url)
+    }
+    catch {
+      // Fallback: 번들된 환경에서 import.meta.url이 유효하지 않을 수 있음
+      _require = createRequire(process.cwd() + '/package.json')
+    }
+  }
+  return _require
+}
 
 /**
  * ParsedEndpoint를 OpenApiPathItem으로 변환
@@ -80,7 +92,7 @@ function convertEndpointToPathItem(endpoint: ParsedEndpoint): OpenApiPathItem {
 function parseClientPackageSchema(config: OpenApiClientConfig): OpenApiSchema | undefined {
   try {
     // 패키지 경로 resolve (ESM 환경에서도 동작하도록 createRequire 사용)
-    const packagePath = _require.resolve(`${config.package}/package.json`)
+    const packagePath = getRequire().resolve(`${config.package}/package.json`)
     const packageRoot = packagePath.replace('/package.json', '').replace('\\package.json', '')
 
     const clientPackage: ParsedClientPackage = getClientPackage(packageRoot, config)

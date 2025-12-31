@@ -1,6 +1,6 @@
 {
   "name": "mock-fried",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Nuxt3 Mock API Module - OpenAPI & Protobuf RPC Mock Server",
   "repository": {
     "type": "git",
@@ -60,7 +60,8 @@
     "consola": "^3.4.2",
     "js-yaml": "^4.1.0",
     "openapi-backend": "^5.10.6",
-    "pathe": "^2.0.2"
+    "pathe": "^2.0.2",
+    "ufo": "^1.6.1"
   },
   "devDependencies": {
     "@nuxt/devtools": "^3.1.1",
