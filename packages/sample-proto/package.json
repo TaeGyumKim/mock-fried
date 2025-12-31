@@ -1,0 +1,14 @@
+{
+  "name": "@mock-fried/sample-proto",
+  "version": "1.0.0",
+  "description": "Sample proto files for mock-fried module testing",
+  "type": "module",
+  "main": "./protos/index.js",
+  "exports": {
+    ".": "./protos/index.js",
+    "./protos/*": "./protos/*"
+  },
+  "files": [
+    "protos"
+  ]
+}

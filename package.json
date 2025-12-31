@@ -14,8 +14,6 @@
   "type": "module",
   "packageManager": "yarn@4.12.0",
   "workspaces": [
-    "playground-openapi",
-    "playground-proto",
     "packages/*"
   ],
   "exports": {
@@ -42,7 +40,8 @@
     "dev:proto": "yarn dev:prepare:proto && nuxi dev playground-proto",
     "dev:build": "nuxi build playground-openapi",
     "dev:build:proto": "nuxi build playground-proto",
-    "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare playground-openapi",
+    "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare",
+    "dev:prepare:playground": "yarn dev:prepare && nuxi prepare playground-openapi",
     "dev:prepare:proto": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare playground-proto",
     "release": "yarn lint && yarn test && yarn prepack && changelogen --release && yarn npm publish && git push --follow-tags",
     "lint": "eslint .",
