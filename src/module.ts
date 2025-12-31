@@ -1,6 +1,7 @@
 import { defineNuxtModule, addPlugin, addServerHandler, createResolver, useLogger, addImports, addComponentsDir } from '@nuxt/kit'
 import { resolve, normalize } from 'pathe'
 import { createRequire } from 'node:module'
+import { readFileSync, existsSync } from 'node:fs'
 import type { MockModuleOptions, OpenApiClientConfig, MockRuntimeConfig } from './types'
 
 export type { MockModuleOptions, OpenApiClientConfig }
@@ -159,7 +160,29 @@ export default defineNuxtModule<MockModuleOptions>({
           clientPackagePath = normalize(resolve(pkgJsonPath, '..'))
         }
         catch {
-          logger.warn(`Failed to resolve client package: ${options.openapi.package}`)
+          // createRequire 실패 시 link: 프로토콜 폴백 시도
+          try {
+            const pkgJsonPath = resolve(rootDir, 'package.json')
+            if (existsSync(pkgJsonPath)) {
+              const pkgJson = JSON.parse(readFileSync(pkgJsonPath, 'utf-8'))
+              const deps = { ...pkgJson.dependencies, ...pkgJson.devDependencies }
+              const depValue = deps[options.openapi.package]
+              if (depValue) {
+                // link: 또는 file: 프로토콜 처리
+                if (depValue.startsWith('link:') || depValue.startsWith('file:')) {
+                  const relativePath = depValue.replace(/^(link:|file:)/, '')
+                  clientPackagePath = normalize(resolve(rootDir, relativePath))
+                  logger.info(`Resolved linked package: ${clientPackagePath}`)
+                }
+              }
+            }
+          }
+          catch {
+            // ignore
+          }
+          if (!clientPackagePath) {
+            logger.warn(`Failed to resolve client package: ${options.openapi.package}`)
+          }
         }
       }
     }

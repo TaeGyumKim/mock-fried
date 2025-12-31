@@ -12,6 +12,7 @@ export default createConfigForNuxt({
   dirs: {
     src: [
       './playground-openapi',
+      './playground-openapi-client',
       './playground-proto',
     ],
   },

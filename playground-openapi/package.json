@@ -9,7 +9,6 @@
     "generate": "nuxi generate"
   },
   "dependencies": {
-    "@ptcorp-eosikahair/openapi": "git+https://git.dev.opnd.io/ptcorp-eosikahair/openapi-frontend.git#commit=a94b28e868645080898318fe8a5967e7a46eece2",
     "nuxt": "^4.2.2"
   }
 }

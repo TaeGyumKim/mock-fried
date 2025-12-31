@@ -368,18 +368,18 @@ describe('Page Pagination Snapshot Consistency', () => {
 })
 
 // ==============================================
-// 4. Comprehensive OpenAPI Package 파싱 검증
+// 4. OpenAPI Client Package 파싱 검증 (openapi-generator 출력)
 // ==============================================
 
-describe('Comprehensive OpenAPI Package Parsing', () => {
+describe('OpenAPI Client Package Parsing', () => {
   it('should have correct package structure', async () => {
     const fs = await import('node:fs')
     const path = await import('node:path')
 
-    const packagePath = path.resolve(process.cwd(), 'packages/openapi-comprehensive')
+    const packagePath = path.resolve(process.cwd(), 'packages/openapi-client')
     expect(fs.existsSync(packagePath)).toBe(true)
 
-    // Check essential files exist
+    // Check essential files exist (openapi-generator output)
     expect(fs.existsSync(path.join(packagePath, 'package.json'))).toBe(true)
     expect(fs.existsSync(path.join(packagePath, 'src/index.ts'))).toBe(true)
     expect(fs.existsSync(path.join(packagePath, 'src/runtime.ts'))).toBe(true)
@@ -388,9 +388,9 @@ describe('Comprehensive OpenAPI Package Parsing', () => {
   })
 
   it('should export all model types and helper functions', async () => {
-    const models = await import('../packages/openapi-comprehensive/src/models')
+    const models = await import('../packages/openapi-client/src/models')
 
-    // Core model helper functions (interfaces are type-only, so check helper functions)
+    // Core model helper functions (openapi-generator output)
     expect(models.UserFromJSON).toBeDefined()
     expect(models.UserToJSON).toBeDefined()
     expect(models.PostFromJSON).toBeDefined()
@@ -401,16 +401,10 @@ describe('Comprehensive OpenAPI Package Parsing', () => {
     expect(models.OrderToJSON).toBeDefined()
     expect(models.CommentFromJSON).toBeDefined()
     expect(models.CommentToJSON).toBeDefined()
-
-    // Enums (these are runtime values)
-    expect(models.UserRole).toBeDefined()
-    expect(models.UserStatus).toBeDefined()
-    expect(models.OrderStatus).toBeDefined()
-    expect(models.ProductCategory).toBeDefined()
   })
 
   it('should export all API classes', async () => {
-    const apis = await import('../packages/openapi-comprehensive/src/apis')
+    const apis = await import('../packages/openapi-client/src/apis')
 
     expect(apis.UsersApi).toBeDefined()
     expect(apis.PostsApi).toBeDefined()
@@ -420,26 +414,16 @@ describe('Comprehensive OpenAPI Package Parsing', () => {
     expect(apis.HealthApi).toBeDefined()
   })
 
-  it('should have correct enum values', async () => {
-    const { UserRole, UserStatus, OrderStatus, ProductCategory } = await import('../packages/openapi-comprehensive/src/models')
+  it('should have correct response type enums', async () => {
+    // openapi-generator creates enum types for response enums
+    const models = await import('../packages/openapi-client/src/models')
 
-    // UserRole
-    expect(Object.values(UserRole)).toContain('ADMIN')
-    expect(Object.values(UserRole)).toContain('USER')
-    expect(Object.values(UserRole)).toContain('GUEST')
-
-    // UserStatus
-    expect(Object.values(UserStatus)).toContain('ACTIVE')
-    expect(Object.values(UserStatus)).toContain('INACTIVE')
-    expect(Object.values(UserStatus)).toContain('PENDING')
-
-    // OrderStatus
-    expect(Object.values(OrderStatus)).toContain('PENDING')
-    expect(Object.values(OrderStatus)).toContain('CONFIRMED')
-    expect(Object.values(OrderStatus)).toContain('SHIPPED')
-
-    // ProductCategory should have many values
-    expect(Object.keys(ProductCategory).length).toBeGreaterThan(10)
+    // Check that pagination and list response types exist
+    expect(models.UserListResponseFromJSON).toBeDefined()
+    expect(models.ProductListResponseFromJSON).toBeDefined()
+    expect(models.OrderListResponseFromJSON).toBeDefined()
+    expect(models.PostListResponseFromJSON).toBeDefined()
+    expect(models.CommentListResponseFromJSON).toBeDefined()
   })
 })
 

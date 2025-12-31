@@ -1,0 +1,15 @@
+{
+  "private": true,
+  "name": "mock-fried-playground-openapi-client",
+  "type": "module",
+  "packageManager": "yarn@4.12.0",
+  "scripts": {
+    "dev": "nuxi dev",
+    "build": "nuxi build",
+    "generate": "nuxi generate"
+  },
+  "dependencies": {
+    "@mock-fried/openapi-client": "link:../packages/openapi-client",
+    "nuxt": "^4.2.2"
+  }
+}

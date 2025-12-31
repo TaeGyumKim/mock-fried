@@ -1134,11 +1134,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mock-fried/openapi-comprehensive@workspace:packages/openapi-comprehensive":
+"@mock-fried/openapi-client@workspace:packages/openapi-client":
   version: 0.0.0-use.local
-  resolution: "@mock-fried/openapi-comprehensive@workspace:packages/openapi-comprehensive"
-  dependencies:
-    typescript: "npm:^5.3.0"
+  resolution: "@mock-fried/openapi-client@workspace:packages/openapi-client"
+  languageName: unknown
+  linkType: soft
+
+"@mock-fried/sample-openapi@workspace:packages/sample-openapi":
+  version: 0.0.0-use.local
+  resolution: "@mock-fried/sample-openapi@workspace:packages/sample-openapi"
   languageName: unknown
   linkType: soft
 
@@ -9347,7 +9351,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:^5.3.0, typescript@npm:~5.9.3":
+"typescript@npm:~5.9.3":
   version: 5.9.3
   resolution: "typescript@npm:5.9.3"
   bin:
@@ -9357,7 +9361,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@npm%3A^5.3.0#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A~5.9.3#optional!builtin<compat/typescript>":
+"typescript@patch:typescript@npm%3A~5.9.3#optional!builtin<compat/typescript>":
   version: 5.9.3
   resolution: "typescript@patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"
   bin:

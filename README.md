@@ -326,8 +326,14 @@ yarn install
 # Generate type stubs
 yarn dev:prepare
 
-# Develop with OpenAPI playground
+# Prepare all playgrounds
+yarn dev:prepare:playground
+
+# Develop with OpenAPI Spec File Mode
 yarn dev:openapi
+
+# Develop with OpenAPI Client Package Mode
+yarn dev:openapi-client
 
 # Develop with Proto playground
 yarn dev:proto
@@ -361,11 +367,13 @@ mock-fried/
 │       └── server/
 │           ├── handlers/      # Nitro 서버 핸들러
 │           └── utils/         # Mock 데이터 생성 유틸
-├── packages/                  # 샘플 패키지 (CI 테스트용)
-│   ├── openapi-comprehensive/ # OpenAPI 클라이언트 샘플
+├── packages/                  # 샘플 패키지 (CI + Playground 공용)
+│   ├── sample-openapi/        # OpenAPI 스펙 파일 (Spec File Mode)
+│   ├── openapi-client/        # openapi-generator 출력 (Client Package Mode)
 │   └── sample-proto/          # Proto 파일 샘플
-├── playground-openapi/        # OpenAPI 테스트 환경 (로컬 전용)
-├── playground-proto/          # Proto 테스트 환경 (로컬 전용)
+├── playground-openapi/        # Spec File Mode 테스트
+├── playground-openapi-client/ # Client Package Mode 테스트
+├── playground-proto/          # Proto RPC 테스트
 └── test/                      # E2E 테스트
 ```
 

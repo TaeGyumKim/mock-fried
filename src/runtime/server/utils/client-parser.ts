@@ -25,15 +25,15 @@ function parseApiFile(filePath: string, fileName: string): ParsedEndpoint[] {
   const classMatch = content.match(/export class (\w+Api)/)
   const apiClassName = classMatch?.[1] || fileName.replace('.ts', '')
 
-  // Raw 메서드 패턴 매칭 (path, method 정보 포함)
-  // async adminGetAccountRaw(...): Promise<runtime.ApiResponse<AdminGetAccount200Response>>
-  // async listUserTokensRaw(...): Promise<runtime.ApiResponse<Array<ClientTokenResponse>>>
+  // Raw 메서드 패턴 매칭 (openapi-generator 출력 형식)
+  // Promise<runtime.ApiResponse<Type>>
   // 멀티라인 JSDoc 지원: /** ... */ 전체를 캡처한 후 마지막 줄에서 summary 추출
   // 중첩된 제네릭 타입 지원: Array<Type> 형태를 올바르게 캡처
   const rawMethodRegex = /\/\*\*([\s\S]*?)\*\/\s*\n\s*async\s+(\w+)Raw\([^)]*\):\s*Promise<runtime\.ApiResponse<((?:[^<>]|<[^>]*>)+)>>/g
 
   // 각 Raw 메서드의 본문에서 path, method 추출
-  const methodBodyRegex = /async\s+(\w+)Raw\([^{]+\{([\s\S]*?)return new runtime\./g
+  // openapi-generator 형식: return new runtime.JSONApiResponse(...)
+  const methodBodyRegex = /async\s+(\w+)Raw\([^)]*\)[^{]*\{([\s\S]*?)return new runtime\./g
 
   let match
   const methodBodies = new Map<string, string>()
@@ -63,18 +63,26 @@ function parseApiFile(filePath: string, fileName: string): ParsedEndpoint[] {
     const body = methodBodies.get(operationId)
     if (!body) continue
 
-    // path 추출
-    const pathMatch = body.match(/path:\s*`([^`]+)`/)
+    // path 추출 (openapi-generator 형식: let urlPath = `/users`)
+    const pathMatch = body.match(/let\s+urlPath\s*=\s*`([^`]+)`/)
     if (!pathMatch) continue
 
     let path = pathMatch[1]
-    // ${...} 형태를 {param} 형태로 변환
+    // ${...} 형태를 {param} 형태로 변환 또는 제거
     path = path.replace(/\$\{[^}]+\}/g, (match) => {
-      const paramName = match.match(/\["?(\w+)"?\]/)?.[1] || 'param'
-      return `{${paramName}}`
+      // requestParameters.id 또는 requestParameters["id"] 형태 -> path param
+      const paramName = match.match(/requestParameters(?:\.(\w+)|\["?(\w+)"?\])/)?.[1]
+        || match.match(/requestParameters(?:\.(\w+)|\["?(\w+)"?\])/)?.[2]
+      if (paramName) {
+        return `{${paramName}}`
+      }
+      // queryString, id 등 단순 변수는 제거 (path param이 아님)
+      return ''
     })
 
     // method 추출
+    // 형식 1: method: 'GET'
+    // 형식 2: init: { method: 'GET', ... }
     const methodMatch = body.match(/method:\s*'(\w+)'/)
     const method = methodMatch?.[1] || 'GET'
 
@@ -89,9 +97,9 @@ function parseApiFile(filePath: string, fileName: string): ParsedEndpoint[] {
       })
     }
 
-    // Query 파라미터 추출
+    // Query 파라미터 추출 (openapi-generator 형식: queryParameters['param'] = ...)
     const queryParams: ParsedParameter[] = []
-    const queryParamRegex = /if\s*\(requestParameters\.(\w+)\s*!==\s*undefined\)\s*\{\s*queryParameters\['(\w+)'\]/g
+    const queryParamRegex = /if\s*\(requestParameters\[?['"]?(\w+)['"]?\]?\s*!==?\s*(?:undefined|null)\)\s*\{\s*queryParameters\[['"](\w+)['"]\]/g
     let qpm
     while ((qpm = queryParamRegex.exec(body)) !== null) {
       queryParams.push({

@@ -1,0 +1,16 @@
+{
+  "name": "@mock-fried/sample-openapi",
+  "version": "1.0.0",
+  "description": "Sample OpenAPI spec for mock-fried module testing",
+  "main": "./openapi.yaml",
+  "files": [
+    "openapi.yaml"
+  ],
+  "keywords": [
+    "openapi",
+    "mock",
+    "sample",
+    "spec"
+  ],
+  "license": "MIT"
+}

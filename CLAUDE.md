@@ -36,11 +36,13 @@ mock-fried/
 │               │   ├── proto-generator.ts   # Proto Mock 생성
 │               │   └── pagination.ts        # 페이지네이션 매니저
 │               └── client-parser.ts  # TS 클라이언트 패키지 파서
-├── packages/                  # 샘플/테스트용 패키지 (CI에서 사용)
-│   ├── openapi-comprehensive/ # OpenAPI 클라이언트 샘플
-│   └── sample-proto/          # Proto 파일 샘플
-├── playground-openapi/        # OpenAPI 테스트 환경 (로컬 전용, 내부망 의존성)
-├── playground-proto/          # Proto 테스트 환경 (로컬 전용, 내부망 의존성)
+├── packages/                  # 샘플 패키지 (CI + Playground 공용)
+│   ├── sample-openapi/        # OpenAPI 스펙 파일 (Spec File Mode 테스트)
+│   ├── openapi-client/        # openapi-generator 출력 (Client Package Mode 테스트)
+│   └── sample-proto/          # Proto 파일 샘플 (UserService, ProductService)
+├── playground-openapi/        # Spec File Mode 테스트 환경 ($fetch 직접 사용)
+├── playground-openapi-client/ # Client Package Mode 테스트 환경 (생성된 클라이언트 사용)
+├── playground-proto/          # Proto 테스트 환경
 └── test/                      # E2E 테스트
     └── fixtures/              # 테스트용 Nuxt 앱
 ```
@@ -68,16 +70,17 @@ mock-fried/
 ## 개발 명령어
 
 ```bash
-yarn install              # 의존성 설치
-yarn dev:prepare          # 타입 스텁 생성 (CI용)
-yarn dev:prepare:playground # playground 포함 준비 (로컬용)
-yarn dev:openapi          # OpenAPI playground 실행 (로컬)
-yarn dev:proto            # Proto playground 실행 (로컬)
-yarn lint                 # ESLint 검사
-yarn lint:fix             # ESLint 자동 수정
-yarn test                 # 테스트 실행
-yarn test:watch           # 테스트 watch 모드
-yarn prepack              # 빌드
+yarn install                # 의존성 설치
+yarn dev:prepare            # 타입 스텁 생성 (CI용)
+yarn dev:prepare:playground # 모든 playground 준비 (로컬용)
+yarn dev:openapi            # Spec File Mode playground 실행
+yarn dev:openapi-client     # Client Package Mode playground 실행
+yarn dev:proto              # Proto playground 실행
+yarn lint                   # ESLint 검사
+yarn lint:fix               # ESLint 자동 수정
+yarn test                   # 테스트 실행
+yarn test:watch             # 테스트 watch 모드
+yarn prepack                # 빌드
 ```
 
 ## CI/CD 파이프라인
@@ -88,6 +91,7 @@ yarn prepack              # 빌드
 
 ```text
 lint → build → test
+              ↘ playground (빌드 검증)
 ```
 
 **Publish Pipeline** (`.github/workflows/publish.yml`):
@@ -98,15 +102,20 @@ lint → build → test → npm publish
 
 ### Workspaces 구성
 
-- `packages/*` - CI에서 사용하는 샘플 패키지
-- `playground-*` - **워크스페이스에서 제외** (내부망 의존성 때문에 CI에서 사용 불가)
+- `packages/*` - 샘플 패키지 (CI + Playground 공용)
+- `playground-*` - Yarn workspace에서 제외 (`link:` 프로토콜로 packages 참조)
 
 ### 샘플 패키지
 
-| 패키지 | 용도 |
-|--------|------|
-| `@mock-fried/openapi-comprehensive` | OpenAPI 클라이언트 테스트용 샘플 |
-| `@mock-fried/sample-proto` | Proto RPC 테스트용 샘플 |
+| 패키지 | 용도 | 내용 |
+|--------|------|------|
+| `@mock-fried/sample-openapi` | Spec File Mode 테스트 | openapi.yaml (6 APIs 스펙) |
+| `@mock-fried/openapi-client` | Client Package Mode 테스트 | openapi-generator 출력 (UsersApi, ProductsApi, 등) |
+| `@mock-fried/sample-proto` | Proto RPC 테스트용 | UserService, ProductService (example.proto) |
+
+**Mock 모드 설명**:
+- **Spec File Mode**: OpenAPI YAML/JSON 파일에서 직접 Mock 엔드포인트 생성
+- **Client Package Mode**: openapi-generator 출력 패키지를 파싱하여 Mock 엔드포인트 생성
 
 ## 구현 현황
 

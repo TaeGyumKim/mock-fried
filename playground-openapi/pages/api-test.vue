@@ -1,15 +1,15 @@
 <template>
   <div class="container">
     <header class="header">
-      <h1>OpenAPI Client Tester</h1>
+      <h1>OpenAPI Mock Tester</h1>
       <p class="subtitle">
-        @ptcorp-eosikahair/openapi 클라이언트로 Mock API 테스트
+        Spec File Mode: $fetch로 Mock API 직접 테스트
       </p>
       <NuxtLink
         to="/"
         class="back-link"
       >
-        ← Back to Demo
+        &larr; Back to Demo
       </NuxtLink>
     </header>
 
@@ -75,6 +75,7 @@
               v-if="param.required"
               class="required"
             >*</span>
+            <span class="param-in">({{ param.in }})</span>
           </label>
           <input
             :id="param.name"
@@ -101,7 +102,7 @@
 
     <!-- Response -->
     <section
-      v-if="response || error"
+      v-if="response !== null || error"
       class="section"
     >
       <h2>Response</h2>
@@ -124,7 +125,7 @@
         <span class="time">{{ responseInfo.time }}ms</span>
       </div>
       <pre
-        v-if="response"
+        v-if="response !== null"
         class="result"
       >{{ JSON.stringify(response, null, 2) }}</pre>
     </section>
@@ -132,282 +133,169 @@
 </template>
 
 <script setup lang="ts">
-import {
-  AdminAccountApi,
-  AdminAuthApi,
-  AuthApi,
-  BeforeAfterPostsApi,
-  DailyAndConcernPostsApi,
-  DeviceApi,
-  GlobalApi,
-  SampleApi,
-  Configuration,
-  type OtpType,
-} from '@ptcorp-eosikahair/openapi'
-
-// Mock 서버 기본 URL 설정
-const config = new Configuration({
-  basePath: '/mock',
-})
-
-// API 인스턴스들
-const apis = {
-  AdminAccount: new AdminAccountApi(config),
-  AdminAuth: new AdminAuthApi(config),
-  Auth: new AuthApi(config),
-  BeforeAfterPosts: new BeforeAfterPostsApi(config),
-  DailyAndConcernPosts: new DailyAndConcernPostsApi(config),
-  Device: new DeviceApi(config),
-  Global: new GlobalApi(config),
-  Sample: new SampleApi(config),
-}
-
 interface EndpointParam {
   name: string
   type: 'string' | 'number'
+  in: 'path' | 'query'
   required: boolean
   placeholder?: string
 }
 
 interface Endpoint {
   id: string
-  method: string
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE'
   path: string
   params: EndpointParam[]
-  handler: (params: Record<string, unknown>) => Promise<unknown>
 }
 
 // API 목록
 const apiList = [
-  { name: 'AdminAccount', description: '관리자 계정 관리' },
-  { name: 'AdminAuth', description: '관리자 인증' },
-  { name: 'Auth', description: '사용자 인증' },
-  { name: 'BeforeAfterPosts', description: '비포애프터 게시글' },
-  { name: 'DailyAndConcernPosts', description: '일상/고민 게시글' },
-  { name: 'Device', description: '디바이스 관리' },
-  { name: 'Global', description: '글로벌 설정' },
-  { name: 'Sample', description: '샘플 API' },
+  { name: 'Users', description: '사용자 관리 (CRUD)' },
+  { name: 'Products', description: '상품 관리 (CRUD)' },
+  { name: 'Orders', description: '주문 관리 (CRUD)' },
+  { name: 'Posts', description: '게시글 관리 (커서 페이지네이션)' },
+  { name: 'Comments', description: '댓글 관리 (중첩 리소스)' },
+  { name: 'Health', description: '헬스 체크 및 시스템 정보' },
 ]
 
 // 각 API별 엔드포인트 정의
 const endpointsByApi: Record<string, Endpoint[]> = {
-  AdminAccount: [
+  Users: [
     {
-      id: 'listAccounts',
+      id: 'getUsers',
       method: 'GET',
-      path: '/admin/accounts',
+      path: '/users',
       params: [
-        { name: 'page', type: 'number', required: false, placeholder: '1' },
-        { name: 'size', type: 'number', required: false, placeholder: '20' },
+        { name: 'page', type: 'number', in: 'query', required: false, placeholder: '1' },
+        { name: 'limit', type: 'number', in: 'query', required: false, placeholder: '20' },
+        { name: 'status', type: 'string', in: 'query', required: false, placeholder: 'active' },
+        { name: 'role', type: 'string', in: 'query', required: false, placeholder: 'user' },
       ],
-      handler: p => apis.AdminAccount.adminListAccounts({
-        page: p.page as number,
-        size: p.size as number,
-      }),
     },
     {
-      id: 'getAccount',
+      id: 'getUserById',
       method: 'GET',
-      path: '/admin/accounts/{accountId}',
+      path: '/users/{id}',
       params: [
-        { name: 'accountId', type: 'string', required: true, placeholder: 'account-123' },
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'user-123' },
       ],
-      handler: p => apis.AdminAccount.adminGetAccount({
-        accountId: p.accountId as string,
-      }),
     },
     {
-      id: 'listUserTokens',
-      method: 'GET',
-      path: '/admin/accounts/{accountId}/tokens',
-      params: [
-        { name: 'accountId', type: 'string', required: true, placeholder: 'account-123' },
-      ],
-      handler: p => apis.AdminAccount.listUserTokens({
-        accountId: p.accountId as string,
-      }),
-    },
-  ],
-  AdminAuth: [
-    {
-      id: 'adminLogin',
+      id: 'createUser',
       method: 'POST',
-      path: '/admin/auth/login',
+      path: '/users',
       params: [
-        { name: 'adminUserId', type: 'string', required: true, placeholder: 'admin' },
-        { name: 'password', type: 'string', required: true, placeholder: 'password' },
+        { name: 'username', type: 'string', in: 'query', required: true, placeholder: 'johndoe' },
+        { name: 'email', type: 'string', in: 'query', required: true, placeholder: 'john@example.com' },
       ],
-      handler: p => apis.AdminAuth.adminLogin({
-        adminLoginRequest: {
-          adminUserId: p.adminUserId as string,
-          password: p.password as string,
-        },
-      }),
+    },
+    {
+      id: 'deleteUser',
+      method: 'DELETE',
+      path: '/users/{id}',
+      params: [
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'user-123' },
+      ],
     },
   ],
-  Auth: [
+  Products: [
     {
-      id: 'getMyAccount',
+      id: 'getProducts',
       method: 'GET',
-      path: '/auth/profile',
-      params: [],
-      handler: () => apis.Auth.getMyAccount(),
+      path: '/products',
+      params: [
+        { name: 'page', type: 'number', in: 'query', required: false, placeholder: '1' },
+        { name: 'limit', type: 'number', in: 'query', required: false, placeholder: '20' },
+        { name: 'category', type: 'string', in: 'query', required: false, placeholder: 'electronics' },
+        { name: 'minPrice', type: 'number', in: 'query', required: false, placeholder: '0' },
+        { name: 'maxPrice', type: 'number', in: 'query', required: false, placeholder: '1000' },
+      ],
     },
     {
-      id: 'requestOtp',
-      method: 'POST',
-      path: '/auth/otp/request',
+      id: 'getProductById',
+      method: 'GET',
+      path: '/products/{id}',
       params: [
-        { name: 'phoneNumber', type: 'string', required: true, placeholder: '010-1234-5678' },
-        { name: 'otpType', type: 'string', required: true, placeholder: 'email | phoneNumber' },
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'prod-123' },
       ],
-      handler: p => apis.Auth.requestOtp({
-        requestOtpRequest: {
-          phoneNumber: p.phoneNumber as string,
-          otpType: p.otpType as OtpType,
-        },
-      }),
-    },
-    {
-      id: 'completeRegistration',
-      method: 'PUT',
-      path: '/auth/registration',
-      params: [
-        { name: 'nickname', type: 'string', required: true, placeholder: 'nickname' },
-      ],
-      handler: p => apis.Auth.completeRegistration({
-        userRegistrationRequest: {
-          nickname: p.nickname as string,
-        },
-      }),
     },
   ],
-  BeforeAfterPosts: [
+  Orders: [
     {
-      id: 'getAllPosts',
+      id: 'getOrders',
       method: 'GET',
-      path: '/before-after/posts',
+      path: '/orders',
       params: [
-        { name: 'cursor', type: 'string', required: false, placeholder: '' },
-        { name: 'limit', type: 'number', required: false, placeholder: '20' },
+        { name: 'page', type: 'number', in: 'query', required: false, placeholder: '1' },
+        { name: 'limit', type: 'number', in: 'query', required: false, placeholder: '20' },
+        { name: 'status', type: 'string', in: 'query', required: false, placeholder: 'pending' },
+        { name: 'userId', type: 'string', in: 'query', required: false, placeholder: 'user-123' },
       ],
-      handler: p => apis.BeforeAfterPosts.getAllBeforeAfterPosts({
-        cursor: p.cursor as string,
-        limit: p.limit as number,
-      }),
     },
     {
-      id: 'getPost',
+      id: 'getOrderById',
       method: 'GET',
-      path: '/before-after/posts/{postId}',
+      path: '/orders/{id}',
       params: [
-        { name: 'postId', type: 'string', required: true, placeholder: 'post-123' },
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'order-123' },
       ],
-      handler: p => apis.BeforeAfterPosts.getBeforeAfterPost({
-        postId: p.postId as string,
-      }),
-    },
-    {
-      id: 'getPopularPosts',
-      method: 'GET',
-      path: '/before-after/posts/popular',
-      params: [],
-      handler: () => apis.BeforeAfterPosts.getPopularBeforeAfterPosts(),
     },
   ],
-  DailyAndConcernPosts: [
+  Posts: [
     {
-      id: 'getAllPosts',
+      id: 'getPosts',
       method: 'GET',
-      path: '/daily-concern/posts',
+      path: '/posts',
       params: [
-        { name: 'cursor', type: 'string', required: false, placeholder: '' },
-        { name: 'limit', type: 'number', required: false, placeholder: '20' },
+        { name: 'cursor', type: 'string', in: 'query', required: false, placeholder: '' },
+        { name: 'limit', type: 'number', in: 'query', required: false, placeholder: '20' },
+        { name: 'authorId', type: 'string', in: 'query', required: false, placeholder: 'user-123' },
       ],
-      handler: p => apis.DailyAndConcernPosts.getAllDailyAndConcernPosts({
-        cursor: p.cursor as string,
-        limit: p.limit as number,
-      }),
     },
     {
-      id: 'getPost',
+      id: 'getPostById',
       method: 'GET',
-      path: '/daily-concern/posts/{postId}',
+      path: '/posts/{id}',
       params: [
-        { name: 'postId', type: 'string', required: true, placeholder: 'post-123' },
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'post-123' },
       ],
-      handler: p => apis.DailyAndConcernPosts.getDailyAndConcernPost({
-        postId: p.postId as string,
-      }),
-    },
-    {
-      id: 'getPopularPosts',
-      method: 'GET',
-      path: '/daily-concern/posts/popular',
-      params: [],
-      handler: () => apis.DailyAndConcernPosts.getPopularDailyAndConcernPosts(),
     },
   ],
-  Device: [
+  Comments: [
     {
-      id: 'getAllDevices',
+      id: 'getComments',
       method: 'GET',
-      path: '/devices-manage',
+      path: '/posts/{postId}/comments',
       params: [
-        { name: 'page', type: 'number', required: false, placeholder: '1' },
-        { name: 'limit', type: 'number', required: false, placeholder: '20' },
+        { name: 'postId', type: 'string', in: 'path', required: true, placeholder: 'post-123' },
+        { name: 'limit', type: 'number', in: 'query', required: false, placeholder: '20' },
       ],
-      handler: p => apis.Device.getAllUserDevices({
-        page: p.page as number,
-        limit: p.limit as number,
-      }),
-    },
-    {
-      id: 'getDevice',
-      method: 'GET',
-      path: '/devices-manage/{userDeviceId}',
-      params: [
-        { name: 'userDeviceId', type: 'string', required: true, placeholder: 'device-123' },
-      ],
-      handler: p => apis.Device.getUserDevice({
-        userDeviceId: p.userDeviceId as string,
-      }),
     },
   ],
-  Global: [
+  Health: [
     {
       id: 'getHealth',
       method: 'GET',
       path: '/health',
       params: [],
-      handler: () => apis.Global.getHealth(),
     },
     {
       id: 'getVersion',
       method: 'GET',
       path: '/version',
       params: [],
-      handler: () => apis.Global.getVersion(),
     },
-  ],
-  Sample: [
     {
-      id: 'sampleAdminOnlyApi',
+      id: 'ping',
       method: 'GET',
-      path: '/samples/admin-only-api',
+      path: '/ping',
       params: [],
-      handler: () => apis.Sample.sampleAdminOnlyApi(),
     },
     {
-      id: 'sampleUserApi',
+      id: 'getTags',
       method: 'GET',
-      path: '/samples/user-and-authorized-only-api',
-      params: [
-        { name: 'someParameter', type: 'string', required: false, placeholder: 'test' },
-      ],
-      handler: p => apis.Sample.sampleUserAndAuthorizedOnlyApi({
-        someParameter: p.someParameter as string,
-      }),
+      path: '/tags',
+      params: [],
     },
   ],
 }
@@ -442,13 +330,39 @@ function selectEndpoint(endpoint: Endpoint) {
   // 기본값 설정
   paramValues.value = {}
   endpoint.params.forEach((param) => {
-    if (param.type === 'number') {
-      paramValues.value[param.name] = param.placeholder ? Number.parseInt(param.placeholder) : undefined
+    if (param.type === 'number' && param.placeholder) {
+      paramValues.value[param.name] = Number.parseInt(param.placeholder)
     }
   })
   response.value = null
   error.value = null
   responseInfo.value = null
+}
+
+function buildUrl(endpoint: Endpoint, params: Record<string, unknown>): string {
+  let url = `/mock${endpoint.path}`
+
+  // Path 파라미터 치환
+  endpoint.params
+    .filter(p => p.in === 'path')
+    .forEach((param) => {
+      const value = params[param.name]
+      if (value !== undefined && value !== '') {
+        url = url.replace(`{${param.name}}`, String(value))
+      }
+    })
+
+  // Query 파라미터 추가
+  const queryParams = endpoint.params
+    .filter(p => p.in === 'query')
+    .filter(p => params[p.name] !== undefined && params[p.name] !== '')
+    .map(p => `${p.name}=${encodeURIComponent(String(params[p.name]))}`)
+
+  if (queryParams.length > 0) {
+    url += `?${queryParams.join('&')}`
+  }
+
+  return url
 }
 
 async function executeRequest() {
@@ -460,9 +374,12 @@ async function executeRequest() {
   responseInfo.value = null
 
   const startTime = Date.now()
+  const url = buildUrl(selectedEndpoint.value, paramValues.value)
 
   try {
-    const result = await selectedEndpoint.value.handler(paramValues.value)
+    const result = await $fetch(url, {
+      method: selectedEndpoint.value.method,
+    })
     response.value = result
     responseInfo.value = {
       status: 200,
@@ -471,10 +388,11 @@ async function executeRequest() {
     }
   }
   catch (e: unknown) {
-    const err = e as { status?: number, message?: string }
+    const err = e as { statusCode?: number, message?: string, data?: unknown }
     error.value = err.message || 'Unknown error'
+    response.value = err.data || null
     responseInfo.value = {
-      status: err.status || 500,
+      status: err.statusCode || 500,
       ok: false,
       time: Date.now() - startTime,
     }
@@ -662,6 +580,13 @@ h1 {
 
 .required {
   color: #dc3545;
+}
+
+.param-in {
+  color: #999;
+  font-weight: 400;
+  font-size: 0.75rem;
+  margin-left: 0.25rem;
 }
 
 .param-row input {
