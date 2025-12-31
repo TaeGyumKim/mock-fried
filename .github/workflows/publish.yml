@@ -43,6 +43,9 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
+      - name: Prepare
+        run: yarn dev:prepare
+
       - name: Build
         run: yarn prepack
 
