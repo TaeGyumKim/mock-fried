@@ -4,7 +4,17 @@ import * as protoLoader from '@grpc/proto-loader'
 import * as grpc from '@grpc/grpc-js'
 import { readdirSync, statSync } from 'node:fs'
 import { join, extname, dirname } from 'pathe'
-import { generateMockMessage, deriveSeedFromRequest } from '../utils/mock'
+import {
+  generateMockMessage,
+  deriveSeedFromRequest,
+  CursorPaginationManager,
+  PagePaginationManager,
+} from '../utils/mock'
+import {
+  ProtoItemProvider,
+  analyzeProtoPagination,
+  type ProtoMessageType,
+} from '../utils/mock/providers'
 
 // Proto 캐시
 interface ProtoCache {
@@ -15,6 +25,9 @@ interface ProtoCache {
 
 let protoCache: ProtoCache | null = null
 let cachedProtoPath: string | null = null
+// Proto Mode용 pagination managers
+let protoCursorManager: CursorPaginationManager<Record<string, unknown>> | null = null
+let protoPageManager: PagePaginationManager<Record<string, unknown>> | null = null
 
 /**
  * 디렉토리에서 모든 .proto 파일 찾기
@@ -117,6 +130,8 @@ async function loadProto(protoPath: string): Promise<ProtoCache> {
 export function clearProtoCache(): void {
   protoCache = null
   cachedProtoPath = null
+  protoCursorManager = null
+  protoPageManager = null
 }
 
 /**
@@ -201,22 +216,122 @@ export default defineEventHandler(async (event) => {
   }
 
   // 요청 body 읽기
-  let requestBody: unknown
+  let requestBody: Record<string, unknown>
   try {
-    requestBody = await readBody(event)
+    requestBody = (await readBody(event)) as Record<string, unknown> ?? {}
   }
   catch {
     requestBody = {}
   }
 
   // 응답 타입 정보 추출
-  const responseTypeInfo = getResponseTypeInfo(methodDef)
+  const responseTypeInfo = getResponseTypeInfo(methodDef) as ProtoMessageType
 
   // seed 생성 (결정론적)
   const seed = deriveSeedFromRequest(requestBody)
 
-  // Mock 응답 생성
-  const mockResponse = generateMockMessage(responseTypeInfo, seed)
+  // Pagination 응답 분석
+  const paginationInfo = analyzeProtoPagination(responseTypeInfo)
+
+  let mockResponse: unknown
+
+  if (paginationInfo) {
+    // Pagination 파라미터 추출 (요청 body에서)
+    const page = Number(requestBody.page) || 1
+    const limit = Number(requestBody.limit) || Number(requestBody.page_size) || 20
+    const cursor = requestBody.cursor as string | undefined
+    const total = 100 // 기본 총 아이템 수
+
+    // ItemProvider 생성
+    const itemProvider = new ProtoItemProvider(paginationInfo.itemMessageType, {
+      modelName: `${serviceName}.${methodName}`,
+    })
+
+    // Pagination Manager 초기화 (캐싱)
+    if (!protoCursorManager) {
+      protoCursorManager = new CursorPaginationManager(itemProvider)
+    }
+    if (!protoPageManager) {
+      protoPageManager = new PagePaginationManager(itemProvider)
+    }
+
+    // Cursor 기반 또는 Page 기반 pagination
+    if (cursor || paginationInfo.isCursorBased) {
+      const result = protoCursorManager.getCursorPageWithProvider(itemProvider, {
+        cursor,
+        limit,
+        total,
+        seed,
+      })
+
+      // 응답 구조 생성
+      const responseData: Record<string, unknown> = {
+        [paginationInfo.itemsFieldName]: result.items,
+      }
+
+      // Pagination 메타 필드 추가
+      for (const metaField of paginationInfo.metaFields) {
+        const lowerField = metaField.toLowerCase()
+        if (lowerField.includes('next') && lowerField.includes('cursor')) {
+          responseData[metaField] = result.nextCursor
+        }
+        else if (lowerField.includes('prev') && lowerField.includes('cursor')) {
+          responseData[metaField] = result.prevCursor
+        }
+        else if (lowerField.includes('has_more') || lowerField.includes('hasmore')) {
+          responseData[metaField] = result.hasMore
+        }
+        else if (lowerField === 'cursor') {
+          responseData[metaField] = result.nextCursor
+        }
+        else if (lowerField === 'total' || lowerField === 'total_items') {
+          responseData[metaField] = total
+        }
+      }
+
+      mockResponse = responseData
+    }
+    else {
+      // Page 기반 pagination
+      const result = protoPageManager.getPagedResponseWithProvider(itemProvider, {
+        page,
+        limit,
+        total,
+        seed,
+      })
+
+      // 응답 구조 생성
+      const responseData: Record<string, unknown> = {
+        [paginationInfo.itemsFieldName]: result.items,
+      }
+
+      // Pagination 메타 필드 추가
+      for (const metaField of paginationInfo.metaFields) {
+        const lowerField = metaField.toLowerCase()
+        if (lowerField === 'page' || lowerField === 'page_number') {
+          responseData[metaField] = result.page
+        }
+        else if (lowerField === 'total_pages' || lowerField === 'totalpages') {
+          responseData[metaField] = result.totalPages
+        }
+        else if (lowerField === 'total' || lowerField === 'total_items') {
+          responseData[metaField] = result.total
+        }
+        else if (lowerField === 'limit' || lowerField === 'page_size' || lowerField === 'size') {
+          responseData[metaField] = result.limit
+        }
+        else if (lowerField === 'offset') {
+          responseData[metaField] = (result.page - 1) * result.limit
+        }
+      }
+
+      mockResponse = responseData
+    }
+  }
+  else {
+    // Pagination이 아닌 일반 응답
+    mockResponse = generateMockMessage(responseTypeInfo, seed)
+  }
 
   return {
     success: true,

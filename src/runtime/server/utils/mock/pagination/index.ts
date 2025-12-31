@@ -2,6 +2,10 @@
  * Pagination 모듈 진입점
  */
 
+// Interfaces
+export type { ItemProvider, ItemProviderOptions } from './interfaces'
+export type { IdGenerator, DefaultIdGeneratorOptions } from './interfaces'
+
 // Types
 export type {
   CursorPayload,
@@ -24,7 +28,11 @@ export {
   SnapshotStore,
   getSnapshotStore,
   resetSnapshotStore,
+  type SnapshotStoreOptions,
 } from './snapshot-store'
+
+// Base Manager
+export { BasePaginationManager, type BasePaginationManagerOptions } from './base-manager'
 
 // Cursor Manager
 export {
@@ -32,9 +40,11 @@ export {
   encodeCursor,
   decodeCursor,
   isCursorExpired,
+  type CursorPaginationManagerOptions,
 } from './cursor-manager'
 
 // Page Manager
 export {
   PagePaginationManager,
+  type PagePaginationManagerOptions,
 } from './page-manager'

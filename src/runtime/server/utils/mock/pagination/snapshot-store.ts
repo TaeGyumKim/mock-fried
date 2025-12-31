@@ -6,6 +6,27 @@ import type { MockIdConfig } from '../../../../../types'
 import type { PaginationSnapshot, PaginationConfig } from './types'
 import { DEFAULT_PAGINATION_CONFIG } from './types'
 import { generateSnapshotId, generateIdValue, DEFAULT_ID_CONFIG } from '../shared'
+import type { IdGenerator } from './interfaces'
+
+/**
+ * 기본 IdGenerator 구현체 (MockIdConfig 기반)
+ */
+class DefaultIdGenerator implements IdGenerator {
+  constructor(private idConfig: MockIdConfig) {}
+
+  generateId(fieldName: string, index: number, seed: string): string | number {
+    return generateIdValue(fieldName, index, seed, this.idConfig)
+  }
+}
+
+/**
+ * 스냅샷 저장소 옵션
+ */
+export interface SnapshotStoreOptions {
+  config?: PaginationConfig
+  idConfig?: MockIdConfig
+  idGenerator?: IdGenerator
+}
 
 /**
  * 스냅샷 저장소 클래스
@@ -13,12 +34,35 @@ import { generateSnapshotId, generateIdValue, DEFAULT_ID_CONFIG } from '../share
 export class SnapshotStore {
   private snapshots: Map<string, PaginationSnapshot> = new Map()
   private config: Required<PaginationConfig>
-  private idConfig: MockIdConfig
+  private idGenerator: IdGenerator
   private cleanupInterval: ReturnType<typeof setInterval> | null = null
 
-  constructor(config?: PaginationConfig, idConfig?: MockIdConfig) {
+  constructor(options?: SnapshotStoreOptions)
+  /** @deprecated Use options object instead */
+  constructor(config?: PaginationConfig, idConfig?: MockIdConfig)
+  constructor(configOrOptions?: PaginationConfig | SnapshotStoreOptions, idConfig?: MockIdConfig) {
+    // 하위 호환성: 이전 시그니처 지원
+    let config: PaginationConfig | undefined
+    let idGenerator: IdGenerator | undefined
+
+    if (configOrOptions && 'idGenerator' in configOrOptions) {
+      // 새 옵션 객체 방식
+      config = configOrOptions.config
+      idGenerator = configOrOptions.idGenerator
+      if (!idGenerator && configOrOptions.idConfig) {
+        idGenerator = new DefaultIdGenerator(configOrOptions.idConfig)
+      }
+    }
+    else {
+      // 이전 방식 (하위 호환성)
+      config = configOrOptions as PaginationConfig | undefined
+      if (idConfig) {
+        idGenerator = new DefaultIdGenerator(idConfig)
+      }
+    }
+
     this.config = { ...DEFAULT_PAGINATION_CONFIG, ...config }
-    this.idConfig = idConfig ?? DEFAULT_ID_CONFIG
+    this.idGenerator = idGenerator ?? new DefaultIdGenerator(DEFAULT_ID_CONFIG)
 
     // 주기적 정리 (5분마다)
     if (typeof setInterval !== 'undefined') {
@@ -34,17 +78,24 @@ export class SnapshotStore {
   }
 
   /**
-   * 아이템 ID 목록 생성 (MockIdConfig 기반)
+   * 아이템 ID 목록 생성 (IdGenerator 사용)
    * 실제 응답에서 사용될 ID와 동일한 값을 생성
    * @param total 총 아이템 수
    * @param seed 생성 seed
    * @param modelName 모델명
    * @param idFieldName ID 필드명 (모델의 실제 ID 필드)
+   * @param customIdGenerator 커스텀 ID 생성기 (옵션)
    */
-  private generateItemIds(total: number, seed: string, modelName: string, idFieldName: string): (string | number)[] {
+  private generateItemIds(
+    total: number,
+    seed: string,
+    modelName: string,
+    idFieldName: string,
+    customIdGenerator?: IdGenerator,
+  ): (string | number)[] {
+    const generator = customIdGenerator ?? this.idGenerator
     return Array.from({ length: total }, (_, i) => {
-      // 모델의 실제 ID 필드명을 사용하여 SchemaMockGenerator와 동일한 ID 생성
-      return generateIdValue(idFieldName, i, `${seed}-${modelName}-${i}`, this.idConfig)
+      return generator.generateId(idFieldName, i, `${seed}-${modelName}-${i}`)
     })
   }
 
@@ -57,12 +108,13 @@ export class SnapshotStore {
    * @param options.ttl 캐시 TTL (ms)
    * @param options.cache 캐싱 활성화 여부
    * @param options.idFieldName ID 필드명 (모델의 실제 ID 필드)
+   * @param options.idGenerator 커스텀 ID 생성기
    */
   getOrCreate(
     modelName: string,
     seed: string,
     total: number,
-    options?: { ttl?: number, cache?: boolean, idFieldName?: string },
+    options?: { ttl?: number, cache?: boolean, idFieldName?: string, idGenerator?: IdGenerator },
   ): PaginationSnapshot {
     const key = this.getKey(modelName, seed)
     const shouldCache = options?.cache ?? this.config.cache
@@ -84,7 +136,7 @@ export class SnapshotStore {
       modelName,
       seed,
       total,
-      itemIds: this.generateItemIds(total, seed, modelName, idFieldName),
+      itemIds: this.generateItemIds(total, seed, modelName, idFieldName, options?.idGenerator),
       idFieldName,
       createdAt: now,
       expiresAt: shouldCache ? now + ttl : undefined,
@@ -164,9 +216,20 @@ let defaultStore: SnapshotStore | null = null
 /**
  * 기본 스냅샷 저장소 가져오기
  */
-export function getSnapshotStore(config?: PaginationConfig, idConfig?: MockIdConfig): SnapshotStore {
+export function getSnapshotStore(options?: SnapshotStoreOptions): SnapshotStore
+/** @deprecated Use options object instead */
+export function getSnapshotStore(config?: PaginationConfig, idConfig?: MockIdConfig): SnapshotStore
+export function getSnapshotStore(
+  configOrOptions?: PaginationConfig | SnapshotStoreOptions,
+  idConfig?: MockIdConfig,
+): SnapshotStore {
   if (!defaultStore) {
-    defaultStore = new SnapshotStore(config, idConfig)
+    if (configOrOptions && 'idGenerator' in configOrOptions) {
+      defaultStore = new SnapshotStore(configOrOptions)
+    }
+    else {
+      defaultStore = new SnapshotStore(configOrOptions as PaginationConfig | undefined, idConfig)
+    }
   }
   return defaultStore
 }

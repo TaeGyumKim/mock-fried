@@ -11,6 +11,11 @@ import {
   CursorPaginationManager,
   PagePaginationManager,
 } from '../utils/mock'
+import {
+  OpenAPIItemProvider,
+  analyzePaginationSchema,
+  type OpenAPISchema,
+} from '../utils/mock/providers'
 import { getClientPackage } from '../utils/client-parser'
 import type {
   ParsedEndpoint,
@@ -27,6 +32,9 @@ import type {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let apiInstance: any = null
 let cachedSpecPath: string | null = null
+// Spec File Mode용 pagination managers
+let specCursorManager: CursorPaginationManager<Record<string, unknown>> | null = null
+let specPageManager: PagePaginationManager<Record<string, unknown>> | null = null
 
 interface OpenAPISpec {
   openapi?: string
@@ -57,8 +65,10 @@ async function getOpenAPIBackend(specPath: string): Promise<any> {
   const definition = loadOpenAPISpec(specPath)
 
   apiInstance = new OpenAPIBackend({
-    definition,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    definition: definition as any,
     quick: true,
+    validate: false, // Mock 서버에서는 request validation 비활성화
   })
 
   apiInstance.register({
@@ -91,8 +101,111 @@ async function getOpenAPIBackend(specPath: string): Promise<any> {
         mockData = jsonContent.example
       }
       else if (jsonContent?.schema) {
-        const seed = hashString(operationId + JSON.stringify(c.request?.params || {}))
-        mockData = generateMockFromSchema(jsonContent.schema, seed)
+        const schema = jsonContent.schema as OpenAPISchema
+        const seed = `${operationId}-${JSON.stringify(c.request?.params || {})}`
+
+        // Pagination 응답 스키마 분석
+        const paginationInfo = analyzePaginationSchema(schema)
+
+        if (paginationInfo) {
+          // Pagination 파라미터 추출
+          const query = c.request?.query || {}
+          const page = Number(query.page) || 1
+          const limit = Number(query.limit) || Number(query.size) || 20
+          const cursor = query.cursor as string | undefined
+          const total = 100 // 기본 총 아이템 수
+
+          // ItemProvider 생성
+          const itemProvider = new OpenAPIItemProvider(paginationInfo.itemSchema, {
+            modelName: operationId,
+          })
+
+          // Pagination Manager 초기화 (캐싱)
+          if (!specCursorManager) {
+            specCursorManager = new CursorPaginationManager(itemProvider)
+          }
+          if (!specPageManager) {
+            specPageManager = new PagePaginationManager(itemProvider)
+          }
+
+          // Cursor 기반 또는 Page 기반 pagination
+          if (cursor || paginationInfo.isCursorBased) {
+            const result = specCursorManager.getCursorPageWithProvider(itemProvider, {
+              cursor,
+              limit,
+              total,
+              seed,
+            })
+
+            // 응답 스키마에 맞게 구조 생성
+            const responseData: Record<string, unknown> = {
+              [paginationInfo.itemsFieldName]: result.items,
+            }
+
+            // Pagination 메타 필드 추가
+            if (paginationInfo.metaFields.includes('nextCursor')) {
+              responseData.nextCursor = result.nextCursor
+            }
+            if (paginationInfo.metaFields.includes('prevCursor')) {
+              responseData.prevCursor = result.prevCursor
+            }
+            if (paginationInfo.metaFields.includes('hasMore')) {
+              responseData.hasMore = result.hasMore
+            }
+            if (paginationInfo.metaFields.includes('total')) {
+              responseData.total = total
+            }
+            if (paginationInfo.metaFields.includes('cursor')) {
+              responseData.cursor = result.nextCursor
+            }
+
+            mockData = responseData
+          }
+          else {
+            // Page 기반 pagination
+            const result = specPageManager.getPagedResponseWithProvider(itemProvider, {
+              page,
+              limit,
+              total,
+              seed,
+            })
+
+            // 응답 스키마에 맞게 구조 생성
+            const responseData: Record<string, unknown> = {
+              [paginationInfo.itemsFieldName]: result.items,
+            }
+
+            // Pagination 메타 필드 추가
+            if (paginationInfo.metaFields.includes('page')) {
+              responseData.page = result.page
+            }
+            if (paginationInfo.metaFields.includes('totalPages')) {
+              responseData.totalPages = result.totalPages
+            }
+            if (paginationInfo.metaFields.includes('total')) {
+              responseData.total = result.total
+            }
+            if (paginationInfo.metaFields.includes('totalItems')) {
+              responseData.totalItems = result.total
+            }
+            if (paginationInfo.metaFields.includes('limit')) {
+              responseData.limit = result.limit
+            }
+            if (paginationInfo.metaFields.includes('size')) {
+              responseData.size = result.limit
+            }
+            if (paginationInfo.metaFields.includes('offset')) {
+              responseData.offset = (result.page - 1) * result.limit
+            }
+
+            mockData = responseData
+          }
+        }
+        else {
+          // Pagination이 아닌 일반 응답
+          const numericSeed = hashString(seed)
+          mockData = generateMockFromSchema(schema as Record<string, unknown>, numericSeed)
+        }
       }
 
       return {
@@ -141,6 +254,8 @@ export function clearOpenApiCache(): void {
   mockGenerator = null
   cursorPaginationManager = null
   pagePaginationManager = null
+  specCursorManager = null
+  specPageManager = null
 }
 
 /**

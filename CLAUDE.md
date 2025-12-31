@@ -32,9 +32,19 @@ mock-fried/
 │           │   └── reset.ts   # 캐시 초기화
 │           └── utils/
 │               ├── mock/      # Mock 데이터 생성
-│               │   ├── schema-generator.ts  # OpenAPI Mock 생성
-│               │   ├── proto-generator.ts   # Proto Mock 생성
-│               │   └── pagination.ts        # 페이지네이션 매니저
+│               │   ├── client-generator.ts  # Client Package Mode Mock 생성
+│               │   ├── openapi-generator.ts # OpenAPI 스키마 기반 Mock 생성
+│               │   ├── proto-generator.ts   # Proto 메시지 기반 Mock 생성
+│               │   ├── shared.ts            # 공유 유틸 (hashString, seededRandom)
+│               │   ├── pagination/          # Pagination 모듈
+│               │   │   ├── interfaces/      # ItemProvider, IdGenerator 인터페이스
+│               │   │   ├── cursor-manager.ts # Cursor 기반 페이지네이션
+│               │   │   ├── page-manager.ts   # Page 기반 페이지네이션
+│               │   │   └── snapshot-store.ts # 스냅샷 저장소
+│               │   └── providers/           # ItemProvider 구현체
+│               │       ├── schema-item-provider.ts  # Client Package Mode
+│               │       ├── openapi-item-provider.ts # Spec File Mode
+│               │       └── proto-item-provider.ts   # Proto Mode
 │               └── client-parser.ts  # TS 클라이언트 패키지 파서
 ├── packages/                  # 샘플 패키지 (CI + Playground 공용)
 │   ├── sample-openapi/        # OpenAPI 스펙 파일 (Spec File Mode 테스트)
@@ -62,10 +72,28 @@ mock-fried/
 
 | 파일 | 역할 |
 |------|------|
-| `schema-generator.ts` | OpenAPI 스키마 기반 Mock 데이터 생성 |
+| `client-generator.ts` | Client Package Mode Mock 데이터 생성 |
+| `openapi-generator.ts` | OpenAPI 스키마 기반 Mock 데이터 생성 |
 | `proto-generator.ts` | Proto 메시지 기반 Mock 데이터 생성 |
-| `pagination.ts` | Page/Cursor 페이지네이션 매니저 |
-| `shared.ts` | 공유 유틸 (hashString, seededRandom) |
+| `shared.ts` | 공유 유틸 (hashString, seededRandom, generateIdValue) |
+
+### Pagination 모듈 (src/runtime/server/utils/mock/pagination/)
+
+| 파일 | 역할 |
+|------|------|
+| `interfaces/` | ItemProvider, IdGenerator 인터페이스 정의 |
+| `cursor-manager.ts` | Cursor 기반 페이지네이션 (ID 기반 연결 cursor) |
+| `page-manager.ts` | Page/Limit 기반 페이지네이션 |
+| `snapshot-store.ts` | 스냅샷 저장소 (데이터 일관성 보장) |
+| `types.ts` | Pagination 관련 타입 정의 |
+
+### ItemProvider 구현체 (src/runtime/server/utils/mock/providers/)
+
+| 파일 | 역할 |
+|------|------|
+| `schema-item-provider.ts` | Client Package Mode용 - SchemaMockGenerator 래핑 |
+| `openapi-item-provider.ts` | Spec File Mode용 - OpenAPI 스키마 기반 |
+| `proto-item-provider.ts` | Proto Mode용 - Protobuf 메시지 기반 |
 
 ## 개발 명령어
 
@@ -127,20 +155,18 @@ lint → build → test → npm publish
 - Client Package / Spec File 모드
 - Generic 타입, JSON 키 매핑
 
-### Protobuf RPC Mock (⚠️ Basic Support)
+### Protobuf RPC Mock (✅ Production Ready)
 
-- Unary RPC만 지원
-- Streaming 미구현
-- Pagination 미구현
-- repeated 필드 고정 1개
+- Unary RPC 지원
+- Page/Cursor 페이지네이션 (자동 감지)
+- Deterministic 데이터 생성
+- repeated 필드 자동 감지
 
 ## 미구현 기능 (TODO)
 
 ### Proto RPC 확장
 
 - [ ] Server streaming 지원
-- [ ] Pagination 패턴 지원
-- [ ] repeated 필드 다수 아이템 생성
 - [ ] Well-known types (Timestamp, Duration 등)
 
 ### 기타
