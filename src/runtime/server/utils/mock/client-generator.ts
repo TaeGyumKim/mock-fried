@@ -204,6 +204,7 @@ export function inferValueByFieldName(
 
 /**
  * TypeScript 타입에 따른 기본값 생성
+ * 타입 우선 추론 후 필드명 기반 세부 추론
  */
 export function generateValueByType(
   type: string,
@@ -212,32 +213,227 @@ export function generateValueByType(
   index: number = 0,
   idConfig: MockIdConfig = DEFAULT_ID_CONFIG,
 ): unknown {
-  // 1. 필드명 기반 추론 시도
-  const inferred = inferValueByFieldName(fieldName, rng, index, idConfig)
-  if (inferred !== null) return inferred
+  const lowerType = type.toLowerCase()
 
-  // 2. 타입 기반 생성
-  switch (type.toLowerCase()) {
-    case 'string':
-      return `mock-${fieldName}-${rng.nextInt(1, 1000)}`
+  // 1. 명시적 타입 우선 처리
+  switch (lowerType) {
     case 'number':
     case 'int':
     case 'integer':
-      return rng.nextInt(1, 1000)
+    case 'float':
+    case 'double':
+      // number 타입은 필드명 기반으로 적절한 범위 결정
+      return inferNumberByFieldName(fieldName, rng, index, idConfig)
+
     case 'boolean':
     case 'bool':
-      return rng.next() > 0.5
+      // boolean 타입은 필드명과 무관하게 boolean 반환
+      return inferBooleanByFieldName(fieldName, rng)
+
     case 'date':
-      return new Date().toISOString()
+      return inferDateByFieldName(fieldName, rng)
+
+    case 'string':
+      // string 타입은 필드명 기반 추론 시도
+      return inferStringByFieldName(fieldName, rng, index, idConfig)
+
     case 'unknown':
     case 'any':
     case 'object':
       // unknown/any/object 타입은 필드명 기반으로 타입 추측
       return inferTypeFromFieldName(fieldName, rng, index, idConfig)
-    default:
-      // enum 타입이거나 알 수 없는 타입
-      return `mock-${fieldName}-${rng.nextInt(1, 1000)}`
+
+    default: {
+      // enum 타입이거나 알 수 없는 타입 - 필드명 추론 시도
+      const inferred = inferValueByFieldName(fieldName, rng, index, idConfig)
+      if (inferred !== null) return inferred
+      return `mock-${fieldName}-${rng.nextInt(1, 10000)}`
+    }
   }
+}
+
+/**
+ * number 타입 필드의 값 생성
+ * 필드명에 따라 적절한 범위 결정
+ */
+export function inferNumberByFieldName(
+  fieldName: string,
+  rng: SeededRandom,
+  index: number = 0,
+  idConfig: MockIdConfig = DEFAULT_ID_CONFIG,
+): number {
+  const name = fieldName.toLowerCase()
+
+  // ID 관련 - MockIdConfig 사용
+  if (isIdField(fieldName, idConfig)) {
+    const id = generateIdValue(fieldName, index, rng.hashId(16), idConfig)
+    return typeof id === 'number' ? id : index + 1
+  }
+
+  // 연월 (YYYYMM 형식)
+  if (name.includes('yearmonth') || (name.includes('month') && name.includes('year'))) {
+    const year = 2024 + rng.nextInt(0, 1)
+    const month = rng.nextInt(1, 12)
+    return year * 100 + month
+  }
+
+  // 연도
+  if (name === 'year' || name.endsWith('year')) {
+    return rng.nextInt(2020, 2030)
+  }
+
+  // 월
+  if (name === 'month' || name.endsWith('month')) {
+    return rng.nextInt(1, 12)
+  }
+
+  // 일
+  if ((name === 'day' || name.endsWith('day')) && !name.includes('days')) {
+    return rng.nextInt(1, 28)
+  }
+
+  // 페이지네이션
+  if (name === 'page' || name === 'pagenumber' || name === 'currentpage') return rng.nextInt(1, 10)
+  if (name === 'limit' || name === 'size' || name === 'pagesize') return rng.nextInt(10, 50)
+  if (name === 'total' || name === 'totalcount' || name === 'totalitems') return rng.nextInt(100, 10000)
+  if (name === 'totalpages') return rng.nextInt(5, 100)
+  if (name === 'offset') return rng.nextInt(0, 500)
+
+  // 카운트/수량 관련 - 넓은 범위
+  if (name.includes('count') || name.includes('quantity') || name.includes('num')) {
+    return rng.nextInt(0, 10000)
+  }
+
+  // 조회수/좋아요 등 통계
+  if (name.includes('views') || name.includes('likes') || name.includes('hits') || name.includes('clicks')) {
+    return rng.nextInt(0, 100000)
+  }
+
+  // 변화량 (change, diff)
+  if (name.includes('change') || name.includes('diff') || name.includes('delta')) {
+    return rng.nextInt(-1000, 1000)
+  }
+
+  // 비율/퍼센트 (0-100)
+  if (name.includes('rate') || name.includes('ratio') || name.includes('percent') || name.includes('percentage')) {
+    return rng.nextInt(0, 100)
+  }
+
+  // 금액/가격 - 큰 범위
+  if (name.includes('amount') || name.includes('price') || name.includes('cost') || name.includes('fee') || name.includes('commission') || name.includes('salary') || name.includes('budget')) {
+    return rng.nextInt(1000, 10000000)
+  }
+
+  // 나이
+  if (name.includes('age')) {
+    return rng.nextInt(1, 100)
+  }
+
+  // 점수/스코어
+  if (name.includes('score') || name.includes('point') || name.includes('rating')) {
+    return rng.nextInt(0, 100)
+  }
+
+  // 레벨/등급
+  if (name.includes('level') || name.includes('grade') || name.includes('tier')) {
+    return rng.nextInt(1, 10)
+  }
+
+  // 순서/우선순위
+  if (name.includes('sequence') || name.includes('order') || name.includes('priority') || name.includes('rank') || name === 'sort' || name === 'index') {
+    return rng.nextInt(1, 1000)
+  }
+
+  // 기간 (일/월/주/년 수)
+  if (name.includes('days') || name.includes('months') || name.includes('weeks') || name.includes('years') || name.includes('duration')) {
+    return rng.nextInt(1, 365)
+  }
+
+  // 거리/길이/크기
+  if (name.includes('distance') || name.includes('length') || name.includes('width') || name.includes('height') || name.includes('size')) {
+    return rng.nextInt(1, 10000)
+  }
+
+  // 기본값: 넓은 범위
+  return rng.nextInt(0, 100000)
+}
+
+/**
+ * boolean 타입 필드의 값 생성
+ */
+export function inferBooleanByFieldName(fieldName: string, rng: SeededRandom): boolean {
+  const name = fieldName.toLowerCase()
+
+  // 특정 필드명은 true 확률 조정
+  if (name.includes('enabled') || name.includes('active') || name.includes('valid') || name.includes('success')) {
+    return rng.next() > 0.3 // 70% true
+  }
+  if (name.includes('deleted') || name.includes('disabled') || name.includes('expired') || name.includes('blocked')) {
+    return rng.next() > 0.7 // 30% true
+  }
+
+  return rng.next() > 0.5
+}
+
+/**
+ * Date 타입 필드의 값 생성
+ */
+export function inferDateByFieldName(fieldName: string, rng: SeededRandom): string {
+  const name = fieldName.toLowerCase()
+  const now = Date.now()
+
+  // 생성일/등록일 - 과거
+  if (name.includes('created') || name.includes('registered') || name.includes('joined')) {
+    const offset = rng.nextInt(-365, -1) * 24 * 60 * 60 * 1000
+    return new Date(now + offset).toISOString()
+  }
+
+  // 수정일/업데이트 - 최근
+  if (name.includes('updated') || name.includes('modified')) {
+    const offset = rng.nextInt(-30, 0) * 24 * 60 * 60 * 1000
+    return new Date(now + offset).toISOString()
+  }
+
+  // 만료일/마감일 - 미래
+  if (name.includes('expir') || name.includes('deadline') || name.includes('due')) {
+    const offset = rng.nextInt(1, 365) * 24 * 60 * 60 * 1000
+    return new Date(now + offset).toISOString()
+  }
+
+  // 시작일
+  if (name.includes('start') || name.includes('begin')) {
+    const offset = rng.nextInt(-30, 30) * 24 * 60 * 60 * 1000
+    return new Date(now + offset).toISOString()
+  }
+
+  // 종료일
+  if (name.includes('end') || name.includes('finish')) {
+    const offset = rng.nextInt(1, 90) * 24 * 60 * 60 * 1000
+    return new Date(now + offset).toISOString()
+  }
+
+  // 기본: -1년 ~ +1달 범위
+  const offset = rng.nextInt(-365, 30) * 24 * 60 * 60 * 1000
+  return new Date(now + offset).toISOString()
+}
+
+/**
+ * string 타입 필드의 값 생성
+ */
+export function inferStringByFieldName(
+  fieldName: string,
+  rng: SeededRandom,
+  index: number = 0,
+  idConfig: MockIdConfig = DEFAULT_ID_CONFIG,
+): string {
+  // 필드명 기반 추론 시도
+  const inferred = inferValueByFieldName(fieldName, rng, index, idConfig)
+  if (inferred !== null && typeof inferred === 'string') {
+    return inferred
+  }
+
+  // 기본 문자열
+  return `mock-${fieldName}-${rng.nextInt(1, 10000)}`
 }
 
 /**
