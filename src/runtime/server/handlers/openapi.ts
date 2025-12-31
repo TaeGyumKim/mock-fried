@@ -1,4 +1,5 @@
-import { defineEventHandler, getQuery, readBody, createError } from 'h3'
+import { defineEventHandler, readBody, createError } from 'h3'
+import { parseQuery } from 'ufo'
 import { useRuntimeConfig } from '#imports'
 import { readFileSync } from 'node:fs'
 import yaml from 'js-yaml'
@@ -465,16 +466,19 @@ export default defineEventHandler(async (event) => {
     }
     | undefined
 
-  // 요청 경로에서 prefix 제거 (event.path는 URL 파싱 없이 경로만 반환)
+  // 요청 경로에서 prefix 제거 및 쿼리 파라미터 분리
   const prefix = mockConfig?.prefix || '/mock'
-  let path = event.path
+  const fullPath = event.path
+  const queryIndex = fullPath.indexOf('?')
+  let path = queryIndex >= 0 ? fullPath.substring(0, queryIndex) : fullPath
+  const queryString = queryIndex >= 0 ? fullPath.substring(queryIndex + 1) : ''
 
   if (path.startsWith(prefix)) {
     path = path.substring(prefix.length) || '/'
   }
 
-  // 쿼리 파라미터 추출
-  const query = getQuery(event) as Record<string, string | number>
+  // 쿼리 파라미터 추출 (URL 파싱 없이 직접 파싱)
+  const query = parseQuery(queryString) as Record<string, string | number>
 
   // 요청 body 읽기 (GET이 아닌 경우)
   let body: unknown
