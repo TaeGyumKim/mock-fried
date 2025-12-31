@@ -10,6 +10,7 @@ import { setup, $fetch } from '@nuxt/test-utils/e2e'
 describe('OpenAPI Handler E2E', async () => {
   await setup({
     rootDir: fileURLToPath(new URL('./fixtures/handlers', import.meta.url)),
+    dev: true,
   })
 
   describe('GET requests', () => {

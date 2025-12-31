@@ -14,15 +14,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Enable Corepack
+        run: corepack enable
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: 'https://registry.npmjs.org'
-
-      - run: npm i -g --force corepack@latest && corepack enable
+          cache: 'yarn'
 
       - name: Install dependencies
         run: yarn install --immutable
+
+      - name: Prepare
+        run: yarn dev:prepare
 
       - name: Lint
         run: yarn lint
