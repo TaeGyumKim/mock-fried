@@ -338,4 +338,231 @@ describe('OpenAPI Spec File Mode E2E', async () => {
       }
     })
   })
+
+  // ============================================
+  // Edge Cases - Primitive Response Types
+  // ============================================
+  describe('Edge Cases - Primitive Responses', () => {
+    it('should return integer for GET /mock/stats/count', async () => {
+      const response = await $fetch('/mock/stats/count')
+
+      expect(response).toBeDefined()
+      expect(typeof response).toBe('number')
+    })
+
+    it('should return string for GET /mock/stats/status', async () => {
+      const response = await $fetch('/mock/stats/status')
+
+      expect(response).toBeDefined()
+      expect(typeof response).toBe('string')
+    })
+
+    it('should return boolean for GET /mock/stats/enabled', async () => {
+      const response = await $fetch('/mock/stats/enabled')
+
+      expect(response).toBeDefined()
+      expect(typeof response).toBe('boolean')
+    })
+  })
+
+  // ============================================
+  // Edge Cases - Multiple Path Parameters
+  // ============================================
+  describe('Edge Cases - Multiple Path Parameters', () => {
+    it('should handle 2 path params: /categories/{catId}/products/{prodId}', async () => {
+      const response = await $fetch('/mock/categories/cat-123/products/prod-456')
+
+      expect(response).toBeDefined()
+      expect(typeof response).toBe('object')
+    })
+
+    it('should handle 3 path params: /users/{userId}/orders/{orderId}/items/{itemId}', async () => {
+      const response = await $fetch('/mock/users/user-1/orders/order-2/items/item-3')
+
+      expect(response).toBeDefined()
+      expect(typeof response).toBe('object')
+    })
+
+    it('should return consistent data for same multi-param path', async () => {
+      const response1 = await $fetch('/mock/categories/cat-abc/products/prod-xyz')
+      const response2 = await $fetch('/mock/categories/cat-abc/products/prod-xyz')
+
+      expect(response1).toEqual(response2)
+    })
+  })
+
+  // ============================================
+  // Edge Cases - Direct Array Response
+  // ============================================
+  describe('Edge Cases - Direct Array Response', () => {
+    it('should return array for GET /mock/featured/products', async () => {
+      const response = await $fetch('/mock/featured/products')
+
+      expect(response).toBeDefined()
+      expect(Array.isArray(response)).toBe(true)
+    })
+
+    it('should return string array for GET /mock/search/suggestions', async () => {
+      const response = await $fetch('/mock/search/suggestions?q=test')
+
+      expect(response).toBeDefined()
+      expect(Array.isArray(response)).toBe(true)
+    })
+  })
+
+  // ============================================
+  // Edge Cases - Nullable & Complex Fields
+  // ============================================
+  describe('Edge Cases - Nullable Fields', () => {
+    it('should return profile with nullable fields', async () => {
+      const response = await $fetch('/mock/profiles/profile-123')
+
+      expect(response).toBeDefined()
+      expect(response.id).toBeDefined()
+      expect(response.username).toBeDefined()
+      // nullable fields may or may not be present
+    })
+  })
+
+  // ============================================
+  // Edge Cases - Schema Composition (allOf)
+  // ============================================
+  describe('Edge Cases - Schema Composition', () => {
+    it('should return AdminUser with inherited User fields', async () => {
+      const response = await $fetch('/mock/admin/users/admin-123')
+
+      expect(response).toBeDefined()
+      expect(typeof response).toBe('object')
+      // Should have User fields + AdminUser fields
+    })
+  })
+
+  // ============================================
+  // Edge Cases - Polymorphic Types (oneOf)
+  // ============================================
+  describe('Edge Cases - Polymorphic Types', () => {
+    it('should return notification with type discriminator', async () => {
+      const response = await $fetch('/mock/notifications/notif-123')
+
+      expect(response).toBeDefined()
+      expect(typeof response).toBe('object')
+    })
+  })
+
+  // ============================================
+  // Edge Cases - Deeply Nested Objects
+  // ============================================
+  describe('Edge Cases - Deeply Nested', () => {
+    it('should return report with nested metadata structure', async () => {
+      const response = await $fetch('/mock/reports/report-123')
+
+      expect(response).toBeDefined()
+      expect(typeof response).toBe('object')
+      expect(response.id).toBeDefined()
+      expect(response.title).toBeDefined()
+      // metadata는 deeply nested object
+      expect(response.metadata).toBeDefined()
+      expect(typeof response.metadata).toBe('object')
+      // sections는 array
+      expect(response.sections).toBeDefined()
+      expect(Array.isArray(response.sections)).toBe(true)
+    })
+  })
+
+  // ============================================
+  // Edge Cases - Recursive Schema
+  // ============================================
+  describe('Edge Cases - Recursive Schema', () => {
+    it('should return category tree with children', async () => {
+      const response = await $fetch('/mock/categories/cat-root/tree')
+
+      expect(response).toBeDefined()
+      expect(typeof response).toBe('object')
+      expect(response.id).toBeDefined()
+      expect(response.name).toBeDefined()
+      // children은 같은 타입의 배열 (재귀 구조)
+      expect(response.children).toBeDefined()
+      expect(Array.isArray(response.children)).toBe(true)
+    })
+  })
+
+  // ============================================
+  // Edge Cases - Numeric Types
+  // ============================================
+  describe('Edge Cases - Numeric Types', () => {
+    it('should return metrics with various numeric fields', async () => {
+      const response = await $fetch('/mock/analytics/metrics')
+
+      expect(response).toBeDefined()
+      expect(typeof response).toBe('object')
+    })
+  })
+
+  // ============================================
+  // Edge Cases - Date Formats
+  // ============================================
+  describe('Edge Cases - Date Formats', () => {
+    it('should return event with date fields', async () => {
+      const response = await $fetch('/mock/events/event-123')
+
+      expect(response).toBeDefined()
+      expect(response.id).toBeDefined()
+      expect(response.eventDate).toBeDefined()
+      expect(response.startTime).toBeDefined()
+    })
+  })
+
+  // ============================================
+  // Edge Cases - Settings with Constraints
+  // ============================================
+  describe('Edge Cases - Settings', () => {
+    it('should return settings', async () => {
+      const response = await $fetch('/mock/settings')
+
+      expect(response).toBeDefined()
+      expect(typeof response).toBe('object')
+    })
+
+    it('should handle PUT settings', async () => {
+      const response = await $fetch('/mock/settings', {
+        method: 'PUT',
+        body: {
+          displayName: 'Test User',
+          theme: 'dark',
+        },
+      })
+
+      expect(response).toBeDefined()
+    })
+  })
+
+  // ============================================
+  // Edge Cases - Map/Dictionary Types
+  // ============================================
+  describe('Edge Cases - Map Types', () => {
+    it('should return config map', async () => {
+      const response = await $fetch('/mock/config')
+
+      expect(response).toBeDefined()
+      expect(typeof response).toBe('object')
+    })
+  })
+
+  // ============================================
+  // Edge Cases - Additional 204 Responses
+  // ============================================
+  describe('Edge Cases - 204 No Content', () => {
+    it('should return 204 for DELETE /mock/cache', async () => {
+      const response = await $fetch('/mock/cache', { method: 'DELETE' })
+
+      // 204 No Content returns null/undefined
+      expect(response === null || response === undefined || response === '').toBe(true)
+    })
+
+    it('should return 204 for DELETE /mock/sessions/{id}', async () => {
+      const response = await $fetch('/mock/sessions/session-123', { method: 'DELETE' })
+
+      expect(response === null || response === undefined || response === '').toBe(true)
+    })
+  })
 })

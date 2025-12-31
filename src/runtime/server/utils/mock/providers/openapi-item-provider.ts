@@ -193,6 +193,12 @@ export function analyzePaginationSchema(schema: OpenAPISchema): PaginationSchema
   const isPageBased = foundPageFields.length >= 2
   const isCursorBased = foundCursorFields.length >= 1
 
+  // 페이지네이션 메타 필드가 없으면 일반 객체로 처리 (배열만 있는 경우)
+  // 예: Report { id, title, metadata, sections[] } 는 페이지네이션이 아님
+  if (!isPageBased && !isCursorBased) {
+    return null
+  }
+
   return {
     itemsFieldName,
     itemSchema,

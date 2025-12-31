@@ -137,13 +137,40 @@ lint → build → test → npm publish
 
 | 패키지 | 용도 | 내용 |
 |--------|------|------|
-| `@mock-fried/sample-openapi` | Spec File Mode 테스트 | openapi.yaml (6 APIs 스펙) |
-| `@mock-fried/openapi-client` | Client Package Mode 테스트 | openapi-generator 출력 (UsersApi, ProductsApi, 등) |
+| `@mock-fried/sample-openapi` | Spec File Mode 테스트 | openapi.yaml (7 API 그룹, 43개 엔드포인트) |
+| `@mock-fried/openapi-client` | Client Package Mode 테스트 | openapi-generator 출력 (동일 스펙 기반) |
 | `@mock-fried/sample-proto` | Proto RPC 테스트용 | UserService, ProductService (example.proto) |
 
 **Mock 모드 설명**:
 - **Spec File Mode**: OpenAPI YAML/JSON 파일에서 직접 Mock 엔드포인트 생성
 - **Client Package Mode**: openapi-generator 출력 패키지를 파싱하여 Mock 엔드포인트 생성
+
+### OpenAPI 스펙 구성 (sample-openapi, openapi-client 동일)
+
+| API 그룹 | 엔드포인트 수 | 주요 기능 |
+|----------|-------------|----------|
+| Users | 5 | CRUD, 페이지네이션, 필터링 |
+| Products | 3 | CRUD, 페이지네이션 |
+| Orders | 3 | CRUD, 중첩 구조 |
+| Posts | 3 | 커서 기반 페이지네이션 |
+| Comments | 2 | 중첩 리소스 |
+| Health | 4 | 헬스체크, 버전, ping, tags |
+| EdgeCases | 18 | 다양한 스키마 테스트 |
+
+**EdgeCases 엔드포인트**:
+- Primitive 응답 (integer, string, boolean)
+- 다중 경로 파라미터 (2개, 3개)
+- 직접 배열 응답 (객체, 문자열)
+- Nullable 필드
+- Schema Composition (allOf)
+- Polymorphic Types (oneOf with discriminator)
+- Deeply Nested Objects
+- Recursive Schema (self-reference)
+- 다양한 수치형 (int32, int64, float, double)
+- Date 형식 (date, date-time)
+- Min/Max 제약조건
+- Map/Dictionary (additionalProperties)
+- 204 No Content 응답
 
 ## 구현 현황
 
@@ -201,12 +228,35 @@ lint → build → test → npm publish
 ## 테스트
 
 ```bash
-yarn test                    # 전체 테스트
-yarn test:watch              # watch 모드
-yarn test test/handlers/     # 특정 디렉토리
+yarn test                       # 전체 테스트 (unit + e2e)
+yarn test:unit                  # 단위 테스트만
+yarn test:e2e                   # E2E 테스트만
+yarn test:e2e:openapi           # OpenAPI Spec File Mode E2E
+yarn test:e2e:openapi-client    # OpenAPI Client Package Mode E2E
+yarn test:e2e:proto             # Proto RPC E2E
+yarn test:watch                 # watch 모드
 ```
 
 테스트 파일 위치: `test/` 디렉토리
+
+### 테스트 커버리지
+
+| 테스트 파일 | 테스트 수 | 커버리지 |
+|------------|----------|---------|
+| `playground-openapi.e2e.test.ts` | 51 | Spec File Mode 100% (43 endpoints) |
+| `playground-openapi-client.e2e.test.ts` | 51 | Client Package Mode 100% (43 endpoints) |
+| `playground-proto.e2e.test.ts` | 14 | Proto RPC 100% (5 endpoints) |
+| Unit tests | 31 | Core utilities |
+| **Total** | **147** | |
+
+### E2E 테스트 구성
+
+두 OpenAPI E2E 테스트 파일은 동일한 구조로 동기화되어 있습니다:
+
+- **Basic APIs**: Users, Products, Orders, Posts, Comments, Health
+- **Meta Endpoints**: `__schema`, `__reset`
+- **EdgeCases**: 18개 엔드포인트 (Primitive, allOf, oneOf, Recursive 등)
+- **Data Consistency**: 결정론적 데이터 검증
 
 **참고**: `test/emsp-*.test.ts` 파일은 내부 프로젝트용으로 `.gitignore`에 포함
 
@@ -232,6 +282,39 @@ npm publish --access public  # npm 게시
 3. **Edge Runtime**: fs 모듈 필요로 미지원
 4. **캐시**: 개발 중 설정 변경 시 `POST /mock/__reset` 호출 필요
 5. **CI 빌드**: `yarn dev:prepare` 후 `yarn prepack` 실행 필요 (tsconfig.json이 .nuxt 참조)
+
+## 트러블슈팅
+
+### 캐시 정리 (개발 환경 초기화)
+
+개발 서버 오류 발생 시 캐시 정리:
+
+**PowerShell (Windows):**
+
+```powershell
+Remove-Item -Recurse -Force .yarn/install-state.gz, .nuxt, playground-openapi/.nuxt, playground-openapi-client/.nuxt, playground-proto/.nuxt -ErrorAction SilentlyContinue
+yarn install
+yarn dev:prepare:playground
+```
+
+**Bash (Linux/macOS):**
+
+```bash
+rm -rf .yarn/install-state.gz .nuxt playground-openapi/.nuxt playground-openapi-client/.nuxt playground-proto/.nuxt
+yarn install
+yarn dev:prepare:playground
+```
+
+### openapi-generator oneOf 빈 타입 버그
+
+openapi-generator가 `oneOf`를 빈 타입으로 생성하는 경우가 있음:
+
+```typescript
+// 버그: export type Notification = ;
+// 수정: export type Notification = EmailNotification | PushNotification | SmsNotification;
+```
+
+`packages/openapi-client/src/models/` 내 파일 확인 필요
 
 ## MCP 도구
 

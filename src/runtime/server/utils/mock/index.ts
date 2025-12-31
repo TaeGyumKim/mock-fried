@@ -27,6 +27,7 @@ export {
 // OpenAPI schema generator
 export {
   generateMockFromSchema,
+  type SchemaContext,
 } from './openapi-generator'
 
 // Client package generator

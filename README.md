@@ -278,7 +278,7 @@ Mock-Fried는 **결정론적(deterministic)** Mock 데이터를 생성합니다:
 | Request Body | ✅ | POST/PUT/PATCH body 처리 |
 | All HTTP Methods | ✅ | GET, POST, PUT, DELETE, PATCH |
 
-### Protobuf RPC Mock (⚠️ Basic Support)
+### Protobuf RPC Mock (✅ Production Ready)
 
 | Feature | Status | Description |
 |---------|--------|-------------|
@@ -288,20 +288,20 @@ Mock-Fried는 **결정론적(deterministic)** Mock 데이터를 생성합니다:
 | Basic Types | ✅ | string, int32/64, float, double, bool |
 | Enum Types | ✅ | 첫 번째 enum 값 반환 |
 | Nested Messages | ✅ | 중첩 메시지 타입 |
-| Repeated Fields | ✅ | 배열 필드 (단일 요소) |
+| Repeated Fields | ✅ | 배열 필드 (자동 생성) |
 | Map Fields | ✅ | map 타입 지원 |
+| Page Pagination | ✅ | page/limit 기반 페이지네이션 |
+| Cursor Pagination | ✅ | cursor 기반 무한 스크롤 |
+| Deterministic Data | ✅ | 동일 요청 = 동일 응답 |
 | Server Streaming | ❌ | 미구현 |
 | Client Streaming | ❌ | 미구현 |
 | Bidirectional Streaming | ❌ | 미구현 |
-| Pagination | ❌ | 미구현 |
-| Dynamic List Size | ❌ | repeated 필드 고정 1개 |
 
 ### 구현 예정 (Roadmap)
 
 Proto RPC 기능 확장:
+
 - [ ] Server streaming 지원
-- [ ] Pagination 패턴 지원
-- [ ] repeated 필드 다수 아이템 생성
 - [ ] Well-known types (Timestamp, Duration 등)
 
 ## Compatibility

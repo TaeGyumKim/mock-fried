@@ -10,6 +10,7 @@ import {
   extractDataModelName,
   CursorPaginationManager,
   PagePaginationManager,
+  type SchemaContext,
 } from '../utils/mock'
 import {
   OpenAPIItemProvider,
@@ -45,6 +46,9 @@ interface OpenAPISpec {
   }
 }
 
+// 캐시된 스펙 (스키마 컨텍스트용)
+let cachedOpenAPISpec: OpenAPISpec | null = null
+
 function loadOpenAPISpec(specPath: string): OpenAPISpec {
   const content = readFileSync(specPath, 'utf-8')
 
@@ -64,10 +68,13 @@ async function getOpenAPIBackend(specPath: string): Promise<any> {
   const { OpenAPIBackend } = await import('openapi-backend')
   const definition = loadOpenAPISpec(specPath)
 
+  // 스키마 컨텍스트용 캐시
+  cachedOpenAPISpec = definition
+
   apiInstance = new OpenAPIBackend({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     definition: definition as any,
-    quick: true,
+    quick: false, // $ref 역참조를 위해 false로 설정
     validate: false, // Mock 서버에서는 request validation 비활성화
   })
 
@@ -213,7 +220,19 @@ async function getOpenAPIBackend(specPath: string): Promise<any> {
         else {
           // Pagination이 아닌 일반 응답
           const numericSeed = hashString(seed)
-          mockData = generateMockFromSchema(schema as Record<string, unknown>, numericSeed)
+          // 스키마 컨텍스트 생성 ($ref 해결용)
+          // OpenAPIBackend의 document에서 스키마 가져오기 (더 안정적)
+          const apiSchemas = (c.api?.document as OpenAPISpec | undefined)?.components?.schemas
+          const schemaContext: SchemaContext = {
+            schemas: apiSchemas || cachedOpenAPISpec?.components?.schemas,
+            maxDepth: 10,
+          }
+
+          mockData = generateMockFromSchema(
+            schema as Record<string, unknown>,
+            numericSeed,
+            schemaContext,
+          )
         }
       }
 
@@ -258,6 +277,7 @@ let pagePaginationManager: PagePaginationManager | null = null
 export function clearOpenApiCache(): void {
   apiInstance = null
   cachedSpecPath = null
+  cachedOpenAPISpec = null
   cachedClientPackage = null
   cachedClientPath = null
   mockGenerator = null

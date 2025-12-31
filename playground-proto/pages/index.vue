@@ -5,12 +5,20 @@
       <p class="subtitle">
         Nuxt3 Mock API Module - Protobuf RPC Testing
       </p>
-      <NuxtLink
-        to="/explorer"
-        class="explorer-link"
-      >
-        Open RPC Explorer →
-      </NuxtLink>
+      <div class="nav-links">
+        <NuxtLink
+          to="/api-test"
+          class="nav-link"
+        >
+          API Tester
+        </NuxtLink>
+        <NuxtLink
+          to="/explorer"
+          class="nav-link nav-link-secondary"
+        >
+          RPC Explorer
+        </NuxtLink>
+      </div>
     </header>
 
     <!-- RPC Section -->
@@ -255,7 +263,12 @@ h1 {
   margin-bottom: 1rem;
 }
 
-.explorer-link {
+.nav-links {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.nav-link {
   display: inline-block;
   padding: 0.5rem 1rem;
   background: #7c3aed;
@@ -266,8 +279,16 @@ h1 {
   transition: background 0.2s;
 }
 
-.explorer-link:hover {
+.nav-link:hover {
   background: #6d28d9;
+}
+
+.nav-link-secondary {
+  background: #4990e2;
+}
+
+.nav-link-secondary:hover {
+  background: #3a7bc8;
 }
 
 .section {

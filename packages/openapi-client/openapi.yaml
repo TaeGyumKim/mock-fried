@@ -455,6 +455,369 @@ paths:
                 items:
                   type: string
 
+  # ============================================
+  # Edge Cases - Primitive Response Types
+  # ============================================
+  /stats/count:
+    get:
+      operationId: getTotalCount
+      summary: Get total item count (number response)
+      tags: [EdgeCases]
+      responses:
+        '200':
+          description: Total count as number
+          content:
+            application/json:
+              schema:
+                type: integer
+
+  /stats/status:
+    get:
+      operationId: getSystemStatus
+      summary: Get system status (string response)
+      tags: [EdgeCases]
+      responses:
+        '200':
+          description: Status string
+          content:
+            application/json:
+              schema:
+                type: string
+                enum: [healthy, degraded, critical]
+
+  /stats/enabled:
+    get:
+      operationId: isFeatureEnabled
+      summary: Check if feature is enabled (boolean response)
+      tags: [EdgeCases]
+      responses:
+        '200':
+          description: Boolean flag
+          content:
+            application/json:
+              schema:
+                type: boolean
+
+  # ============================================
+  # Edge Cases - Multiple Path Parameters
+  # ============================================
+  /categories/{categoryId}/products/{productId}:
+    get:
+      operationId: getCategoryProduct
+      summary: Get product within category
+      tags: [EdgeCases]
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product in category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+
+  /users/{userId}/orders/{orderId}/items/{itemId}:
+    get:
+      operationId: getOrderItem
+      summary: Get specific item in user's order (3 path params)
+      tags: [EdgeCases]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Order item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderItem'
+
+  # ============================================
+  # Edge Cases - Direct Array Response (no wrapper)
+  # ============================================
+  /featured/products:
+    get:
+      operationId: getFeaturedProducts
+      summary: Get featured products (direct array)
+      tags: [EdgeCases]
+      responses:
+        '200':
+          description: Array of products without pagination
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+
+  /search/suggestions:
+    get:
+      operationId: getSearchSuggestions
+      summary: Get search suggestions (string array)
+      tags: [EdgeCases]
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Array of suggestion strings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  # ============================================
+  # Edge Cases - Nullable & Optional Fields
+  # ============================================
+  /profiles/{id}:
+    get:
+      operationId: getProfile
+      summary: Get user profile with nullable fields
+      tags: [EdgeCases]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+
+  # ============================================
+  # Edge Cases - Schema Composition (allOf)
+  # ============================================
+  /admin/users/{id}:
+    get:
+      operationId: getAdminUser
+      summary: Get user with admin details (allOf composition)
+      tags: [EdgeCases]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Admin user details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+
+  # ============================================
+  # Edge Cases - Polymorphic Types (oneOf)
+  # ============================================
+  /notifications/{id}:
+    get:
+      operationId: getNotification
+      summary: Get notification (oneOf different types)
+      tags: [EdgeCases]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Notification (can be different types)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+
+  # ============================================
+  # Edge Cases - Deeply Nested Objects
+  # ============================================
+  /reports/{id}:
+    get:
+      operationId: getReport
+      summary: Get detailed report with nested structure
+      tags: [EdgeCases]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Report with nested data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+
+  # ============================================
+  # Edge Cases - Self-Referencing (Recursive)
+  # ============================================
+  /categories/{id}/tree:
+    get:
+      operationId: getCategoryTree
+      summary: Get category tree (recursive structure)
+      tags: [EdgeCases]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Category with children (recursive)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryNode'
+
+  # ============================================
+  # Edge Cases - Various Numeric Types
+  # ============================================
+  /analytics/metrics:
+    get:
+      operationId: getMetrics
+      summary: Get metrics with various numeric types
+      tags: [EdgeCases]
+      responses:
+        '200':
+          description: Metrics data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Metrics'
+
+  # ============================================
+  # Edge Cases - Date Formats
+  # ============================================
+  /events/{id}:
+    get:
+      operationId: getEvent
+      summary: Get event with various date formats
+      tags: [EdgeCases]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Event details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+
+  # ============================================
+  # Edge Cases - Min/Max Constraints
+  # ============================================
+  /settings:
+    get:
+      operationId: getSettings
+      summary: Get settings with min/max constraints
+      tags: [EdgeCases]
+      responses:
+        '200':
+          description: Settings with constraints
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settings'
+
+    put:
+      operationId: updateSettings
+      summary: Update settings
+      tags: [EdgeCases]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Settings'
+      responses:
+        '200':
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settings'
+
+  # ============================================
+  # Edge Cases - Map/Dictionary Types
+  # ============================================
+  /config:
+    get:
+      operationId: getConfig
+      summary: Get configuration (additionalProperties)
+      tags: [EdgeCases]
+      responses:
+        '200':
+          description: Configuration map
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigMap'
+
+  # ============================================
+  # Edge Cases - Empty Body Operations
+  # ============================================
+  /cache:
+    delete:
+      operationId: clearCache
+      summary: Clear cache (204 No Content)
+      tags: [EdgeCases]
+      responses:
+        '204':
+          description: Cache cleared
+
+  /sessions/{id}:
+    delete:
+      operationId: deleteSession
+      summary: Delete session (204 No Content)
+      tags: [EdgeCases]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Session deleted
+
 components:
   schemas:
     # ============================================
@@ -827,3 +1190,355 @@ components:
           type: string
         details:
           type: object
+
+    # ============================================
+    # Edge Case Models - Nullable Fields
+    # ============================================
+    UserProfile:
+      type: object
+      required: [id, username]
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        bio:
+          type: string
+          nullable: true
+        website:
+          type: string
+          format: uri
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        birthDate:
+          type: string
+          format: date
+          nullable: true
+        socialLinks:
+          type: object
+          nullable: true
+          properties:
+            twitter:
+              type: string
+            github:
+              type: string
+            linkedin:
+              type: string
+
+    # ============================================
+    # Edge Case Models - Schema Composition (allOf)
+    # ============================================
+    AdminUser:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          properties:
+            permissions:
+              type: array
+              items:
+                type: string
+            lastLoginIp:
+              type: string
+            loginCount:
+              type: integer
+            isSuperAdmin:
+              type: boolean
+
+    # ============================================
+    # Edge Case Models - Polymorphic (oneOf)
+    # ============================================
+    Notification:
+      oneOf:
+        - $ref: '#/components/schemas/EmailNotification'
+        - $ref: '#/components/schemas/PushNotification'
+        - $ref: '#/components/schemas/SmsNotification'
+      discriminator:
+        propertyName: type
+
+    EmailNotification:
+      type: object
+      required: [id, type, subject, body, recipientEmail]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [email]
+        subject:
+          type: string
+        body:
+          type: string
+        recipientEmail:
+          type: string
+          format: email
+        sentAt:
+          type: string
+          format: date-time
+
+    PushNotification:
+      type: object
+      required: [id, type, title, message, deviceToken]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [push]
+        title:
+          type: string
+        message:
+          type: string
+        deviceToken:
+          type: string
+        badge:
+          type: integer
+        sound:
+          type: string
+
+    SmsNotification:
+      type: object
+      required: [id, type, message, phoneNumber]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [sms]
+        message:
+          type: string
+          maxLength: 160
+        phoneNumber:
+          type: string
+
+    # ============================================
+    # Edge Case Models - Deeply Nested
+    # ============================================
+    Report:
+      type: object
+      required: [id, title, metadata, sections]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        metadata:
+          type: object
+          properties:
+            author:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                department:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+                    organization:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+            createdAt:
+              type: string
+              format: date-time
+            version:
+              type: integer
+        sections:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              title:
+                type: string
+              content:
+                type: string
+              subsections:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    title:
+                      type: string
+                    content:
+                      type: string
+
+    # ============================================
+    # Edge Case Models - Self-Referencing (Recursive)
+    # ============================================
+    CategoryNode:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        parentId:
+          type: string
+          nullable: true
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryNode'
+        productCount:
+          type: integer
+
+    # ============================================
+    # Edge Case Models - Various Numeric Types
+    # ============================================
+    Metrics:
+      type: object
+      properties:
+        # Integer types
+        totalUsers:
+          type: integer
+          format: int32
+        totalRequests:
+          type: integer
+          format: int64
+        activeConnections:
+          type: integer
+        # Float types
+        cpuUsage:
+          type: number
+          format: float
+        memoryUsage:
+          type: number
+          format: double
+        # Number with constraints
+        errorRate:
+          type: number
+          minimum: 0
+          maximum: 100
+        latencyMs:
+          type: number
+          minimum: 0
+        throughput:
+          type: number
+          format: double
+
+    # ============================================
+    # Edge Case Models - Date Formats
+    # ============================================
+    Event:
+      type: object
+      required: [id, name, eventDate, startTime]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        # date only (YYYY-MM-DD)
+        eventDate:
+          type: string
+          format: date
+        # date-time (ISO 8601)
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        # Custom time format
+        duration:
+          type: string
+          description: Duration in ISO 8601 format (e.g., PT2H30M)
+        timezone:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ============================================
+    # Edge Case Models - Min/Max Constraints
+    # ============================================
+    Settings:
+      type: object
+      properties:
+        # String with length constraints
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 50
+        # Number with range
+        volume:
+          type: integer
+          minimum: 0
+          maximum: 100
+          default: 50
+        brightness:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          default: 0.8
+        # Array with size constraints
+        favoriteColors:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 5
+        # String with pattern
+        phoneNumber:
+          type: string
+          pattern: '^\+?[1-9]\d{1,14}$'
+        # Enum with default
+        theme:
+          type: string
+          enum: [light, dark, system]
+          default: system
+        language:
+          type: string
+          enum: [ko, en, ja, zh]
+          default: ko
+        notificationsEnabled:
+          type: boolean
+          default: true
+
+    # ============================================
+    # Edge Case Models - Map/Dictionary
+    # ============================================
+    ConfigMap:
+      type: object
+      additionalProperties:
+        type: string
+      example:
+        apiUrl: "https://api.example.com"
+        debugMode: "true"
+        maxRetries: "3"
+
+    # ============================================
+    # Edge Case Models - Mixed additionalProperties
+    # ============================================
+    DynamicConfig:
+      type: object
+      properties:
+        version:
+          type: string
+        environment:
+          type: string
+      additionalProperties:
+        oneOf:
+          - type: string
+          - type: number
+          - type: boolean

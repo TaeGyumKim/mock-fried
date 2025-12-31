@@ -75,6 +75,7 @@
               v-if="param.required"
               class="required"
             >*</span>
+            <span class="param-type">({{ param.in }})</span>
           </label>
           <input
             :id="param.name"
@@ -139,6 +140,7 @@ import {
   PostsApi,
   CommentsApi,
   HealthApi,
+  EdgeCasesApi,
   Configuration,
 } from '@mock-fried/openapi-client'
 
@@ -155,11 +157,13 @@ const apis = {
   Posts: new PostsApi(config),
   Comments: new CommentsApi(config),
   Health: new HealthApi(config),
+  EdgeCases: new EdgeCasesApi(config),
 }
 
 interface EndpointParam {
   name: string
   type: 'string' | 'number'
+  in: 'path' | 'query' | 'body'
   required: boolean
   placeholder?: string
 }
@@ -172,7 +176,7 @@ interface Endpoint {
   handler: (params: Record<string, unknown>) => Promise<unknown>
 }
 
-// API 목록
+// API 목록 (playground-openapi와 동일)
 const apiList = [
   { name: 'Users', description: '사용자 관리 (CRUD)' },
   { name: 'Products', description: '상품 관리 (CRUD)' },
@@ -180,9 +184,10 @@ const apiList = [
   { name: 'Posts', description: '게시글 관리 (커서 페이지네이션)' },
   { name: 'Comments', description: '댓글 관리 (중첩 리소스)' },
   { name: 'Health', description: '헬스 체크 및 시스템 정보' },
+  { name: 'EdgeCases', description: 'Primitive, Nested, Recursive 등 다양한 스키마' },
 ]
 
-// 각 API별 엔드포인트 정의
+// 각 API별 엔드포인트 정의 (playground-openapi와 동일한 구조)
 const endpointsByApi: Record<string, Endpoint[]> = {
   Users: [
     {
@@ -190,15 +195,19 @@ const endpointsByApi: Record<string, Endpoint[]> = {
       method: 'GET',
       path: '/users',
       params: [
-        { name: 'page', type: 'number', required: false, placeholder: '1' },
-        { name: 'limit', type: 'number', required: false, placeholder: '20' },
-        { name: 'status', type: 'string', required: false, placeholder: 'active' },
+        { name: 'page', type: 'number', in: 'query', required: false, placeholder: '1' },
+        { name: 'limit', type: 'number', in: 'query', required: false, placeholder: '20' },
+        { name: 'status', type: 'string', in: 'query', required: false, placeholder: 'active' },
+        { name: 'role', type: 'string', in: 'query', required: false, placeholder: 'user' },
+        { name: 'search', type: 'string', in: 'query', required: false, placeholder: '' },
       ],
       handler: async (p) => {
         return apis.Users.getUsers({
           page: p.page as number,
           limit: p.limit as number,
           status: p.status as 'active' | 'inactive' | 'suspended',
+          role: p.role as 'admin' | 'user' | 'guest',
+          search: p.search as string,
         })
       },
     },
@@ -207,10 +216,31 @@ const endpointsByApi: Record<string, Endpoint[]> = {
       method: 'GET',
       path: '/users/{id}',
       params: [
-        { name: 'id', type: 'string', required: true, placeholder: 'user-123' },
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'user-123' },
       ],
       handler: async (p) => {
         return apis.Users.getUserById({ id: p.id as string })
+      },
+    },
+    {
+      id: 'createUser',
+      method: 'POST',
+      path: '/users',
+      params: [
+        { name: 'username', type: 'string', in: 'body', required: true, placeholder: 'john_doe' },
+        { name: 'email', type: 'string', in: 'body', required: true, placeholder: 'john@example.com' },
+        { name: 'name', type: 'string', in: 'body', required: false, placeholder: 'John Doe' },
+        { name: 'role', type: 'string', in: 'body', required: false, placeholder: 'user' },
+      ],
+      handler: async (p) => {
+        return apis.Users.createUser({
+          createUserRequest: {
+            username: p.username as string,
+            email: p.email as string,
+            name: p.name as string,
+            role: p.role as 'admin' | 'user' | 'guest',
+          },
+        })
       },
     },
     {
@@ -218,7 +248,7 @@ const endpointsByApi: Record<string, Endpoint[]> = {
       method: 'DELETE',
       path: '/users/{id}',
       params: [
-        { name: 'id', type: 'string', required: true, placeholder: 'user-123' },
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'user-123' },
       ],
       handler: async (p) => {
         await apis.Users.deleteUser({ id: p.id as string })
@@ -232,15 +262,19 @@ const endpointsByApi: Record<string, Endpoint[]> = {
       method: 'GET',
       path: '/products',
       params: [
-        { name: 'page', type: 'number', required: false, placeholder: '1' },
-        { name: 'limit', type: 'number', required: false, placeholder: '20' },
-        { name: 'category', type: 'string', required: false, placeholder: 'electronics' },
+        { name: 'page', type: 'number', in: 'query', required: false, placeholder: '1' },
+        { name: 'limit', type: 'number', in: 'query', required: false, placeholder: '20' },
+        { name: 'category', type: 'string', in: 'query', required: false, placeholder: 'electronics' },
+        { name: 'minPrice', type: 'number', in: 'query', required: false, placeholder: '' },
+        { name: 'maxPrice', type: 'number', in: 'query', required: false, placeholder: '' },
       ],
       handler: async (p) => {
         return apis.Products.getProducts({
           page: p.page as number,
           limit: p.limit as number,
           category: p.category as 'electronics' | 'clothing' | 'food' | 'books' | 'other',
+          minPrice: p.minPrice as number,
+          maxPrice: p.maxPrice as number,
         })
       },
     },
@@ -249,7 +283,7 @@ const endpointsByApi: Record<string, Endpoint[]> = {
       method: 'GET',
       path: '/products/{id}',
       params: [
-        { name: 'id', type: 'string', required: true, placeholder: 'prod-123' },
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'prod-123' },
       ],
       handler: async (p) => {
         return apis.Products.getProductById({ id: p.id as string })
@@ -262,15 +296,17 @@ const endpointsByApi: Record<string, Endpoint[]> = {
       method: 'GET',
       path: '/orders',
       params: [
-        { name: 'page', type: 'number', required: false, placeholder: '1' },
-        { name: 'limit', type: 'number', required: false, placeholder: '20' },
-        { name: 'status', type: 'string', required: false, placeholder: 'pending' },
+        { name: 'page', type: 'number', in: 'query', required: false, placeholder: '1' },
+        { name: 'limit', type: 'number', in: 'query', required: false, placeholder: '20' },
+        { name: 'status', type: 'string', in: 'query', required: false, placeholder: 'pending' },
+        { name: 'userId', type: 'string', in: 'query', required: false, placeholder: '' },
       ],
       handler: async (p) => {
         return apis.Orders.getOrders({
           page: p.page as number,
           limit: p.limit as number,
           status: p.status as 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled',
+          userId: p.userId as string,
         })
       },
     },
@@ -279,7 +315,7 @@ const endpointsByApi: Record<string, Endpoint[]> = {
       method: 'GET',
       path: '/orders/{id}',
       params: [
-        { name: 'id', type: 'string', required: true, placeholder: 'order-123' },
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'order-123' },
       ],
       handler: async (p) => {
         return apis.Orders.getOrderById({ id: p.id as string })
@@ -292,13 +328,15 @@ const endpointsByApi: Record<string, Endpoint[]> = {
       method: 'GET',
       path: '/posts',
       params: [
-        { name: 'cursor', type: 'string', required: false, placeholder: '' },
-        { name: 'limit', type: 'number', required: false, placeholder: '20' },
+        { name: 'cursor', type: 'string', in: 'query', required: false, placeholder: '' },
+        { name: 'limit', type: 'number', in: 'query', required: false, placeholder: '20' },
+        { name: 'authorId', type: 'string', in: 'query', required: false, placeholder: '' },
       ],
       handler: async (p) => {
         return apis.Posts.getPosts({
           cursor: p.cursor as string,
           limit: p.limit as number,
+          authorId: p.authorId as string,
         })
       },
     },
@@ -307,7 +345,7 @@ const endpointsByApi: Record<string, Endpoint[]> = {
       method: 'GET',
       path: '/posts/{id}',
       params: [
-        { name: 'id', type: 'string', required: true, placeholder: 'post-123' },
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'post-123' },
       ],
       handler: async (p) => {
         return apis.Posts.getPostById({ id: p.id as string })
@@ -320,8 +358,8 @@ const endpointsByApi: Record<string, Endpoint[]> = {
       method: 'GET',
       path: '/posts/{postId}/comments',
       params: [
-        { name: 'postId', type: 'string', required: true, placeholder: 'post-123' },
-        { name: 'limit', type: 'number', required: false, placeholder: '20' },
+        { name: 'postId', type: 'string', in: 'path', required: true, placeholder: 'post-123' },
+        { name: 'limit', type: 'number', in: 'query', required: false, placeholder: '20' },
       ],
       handler: async (p) => {
         return apis.Comments.getComments({
@@ -366,6 +404,183 @@ const endpointsByApi: Record<string, Endpoint[]> = {
       params: [],
       handler: async () => {
         return apis.Health.getTags()
+      },
+    },
+  ],
+  EdgeCases: [
+    // Primitive response types
+    {
+      id: 'getTotalCount',
+      method: 'GET',
+      path: '/stats/count',
+      params: [],
+      handler: async () => apis.EdgeCases.getTotalCount(),
+    },
+    {
+      id: 'getSystemStatus',
+      method: 'GET',
+      path: '/stats/status',
+      params: [],
+      handler: async () => apis.EdgeCases.getSystemStatus(),
+    },
+    {
+      id: 'isFeatureEnabled',
+      method: 'GET',
+      path: '/stats/enabled',
+      params: [],
+      handler: async () => apis.EdgeCases.isFeatureEnabled(),
+    },
+    // Multiple path parameters
+    {
+      id: 'getCategoryProduct',
+      method: 'GET',
+      path: '/categories/{categoryId}/products/{productId}',
+      params: [
+        { name: 'categoryId', type: 'string', in: 'path', required: true, placeholder: 'cat-1' },
+        { name: 'productId', type: 'string', in: 'path', required: true, placeholder: 'prod-1' },
+      ],
+      handler: async p => apis.EdgeCases.getCategoryProduct({
+        categoryId: p.categoryId as string,
+        productId: p.productId as string,
+      }),
+    },
+    {
+      id: 'getOrderItem',
+      method: 'GET',
+      path: '/users/{userId}/orders/{orderId}/items/{itemId}',
+      params: [
+        { name: 'userId', type: 'string', in: 'path', required: true, placeholder: 'user-1' },
+        { name: 'orderId', type: 'string', in: 'path', required: true, placeholder: 'order-1' },
+        { name: 'itemId', type: 'string', in: 'path', required: true, placeholder: 'item-1' },
+      ],
+      handler: async p => apis.EdgeCases.getOrderItem({
+        userId: p.userId as string,
+        orderId: p.orderId as string,
+        itemId: p.itemId as string,
+      }),
+    },
+    // Direct array response
+    {
+      id: 'getFeaturedProducts',
+      method: 'GET',
+      path: '/featured/products',
+      params: [],
+      handler: async () => apis.EdgeCases.getFeaturedProducts(),
+    },
+    {
+      id: 'getSearchSuggestions',
+      method: 'GET',
+      path: '/search/suggestions',
+      params: [
+        { name: 'q', type: 'string', in: 'query', required: true, placeholder: 'phone' },
+      ],
+      handler: async p => apis.EdgeCases.getSearchSuggestions({ q: p.q as string }),
+    },
+    // Nullable fields
+    {
+      id: 'getProfile',
+      method: 'GET',
+      path: '/profiles/{id}',
+      params: [
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'user-1' },
+      ],
+      handler: async p => apis.EdgeCases.getProfile({ id: p.id as string }),
+    },
+    // Schema composition (allOf)
+    {
+      id: 'getAdminUser',
+      method: 'GET',
+      path: '/admin/users/{id}',
+      params: [
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'admin-1' },
+      ],
+      handler: async p => apis.EdgeCases.getAdminUser({ id: p.id as string }),
+    },
+    // Polymorphic (oneOf)
+    {
+      id: 'getNotification',
+      method: 'GET',
+      path: '/notifications/{id}',
+      params: [
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'notif-1' },
+      ],
+      handler: async p => apis.EdgeCases.getNotification({ id: p.id as string }),
+    },
+    // Deeply nested
+    {
+      id: 'getReport',
+      method: 'GET',
+      path: '/reports/{id}',
+      params: [
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'report-1' },
+      ],
+      handler: async p => apis.EdgeCases.getReport({ id: p.id as string }),
+    },
+    // Recursive structure
+    {
+      id: 'getCategoryTree',
+      method: 'GET',
+      path: '/categories/{id}/tree',
+      params: [
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'cat-root' },
+      ],
+      handler: async p => apis.EdgeCases.getCategoryTree({ id: p.id as string }),
+    },
+    // Various numeric types
+    {
+      id: 'getMetrics',
+      method: 'GET',
+      path: '/analytics/metrics',
+      params: [],
+      handler: async () => apis.EdgeCases.getMetrics(),
+    },
+    // Date formats
+    {
+      id: 'getEvent',
+      method: 'GET',
+      path: '/events/{id}',
+      params: [
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'event-1' },
+      ],
+      handler: async p => apis.EdgeCases.getEvent({ id: p.id as string }),
+    },
+    // Min/Max constraints
+    {
+      id: 'getSettings',
+      method: 'GET',
+      path: '/settings',
+      params: [],
+      handler: async () => apis.EdgeCases.getSettings(),
+    },
+    // Map/Dictionary
+    {
+      id: 'getConfig',
+      method: 'GET',
+      path: '/config',
+      params: [],
+      handler: async () => apis.EdgeCases.getConfig(),
+    },
+    // 204 No Content
+    {
+      id: 'clearCache',
+      method: 'DELETE',
+      path: '/cache',
+      params: [],
+      handler: async () => {
+        await apis.EdgeCases.clearCache()
+        return { success: true, message: 'Cache cleared' }
+      },
+    },
+    {
+      id: 'deleteSession',
+      method: 'DELETE',
+      path: '/sessions/{id}',
+      params: [
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'session-1' },
+      ],
+      handler: async (p) => {
+        await apis.EdgeCases.deleteSession({ id: p.id as string })
+        return { success: true, message: 'Session deleted' }
       },
     },
   ],
@@ -565,7 +780,7 @@ h1 {
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 600;
-  min-width: 50px;
+  min-width: 55px;
   text-align: center;
 }
 
@@ -616,6 +831,13 @@ h1 {
 
 .required {
   color: #dc3545;
+}
+
+.param-type {
+  color: #999;
+  font-weight: 400;
+  font-size: 0.75rem;
+  margin-left: 0.25rem;
 }
 
 .param-row input {

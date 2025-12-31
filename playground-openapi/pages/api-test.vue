@@ -156,6 +156,7 @@ const apiList = [
   { name: 'Posts', description: '게시글 관리 (커서 페이지네이션)' },
   { name: 'Comments', description: '댓글 관리 (중첩 리소스)' },
   { name: 'Health', description: '헬스 체크 및 시스템 정보' },
+  { name: 'EdgeCases', description: 'Primitive, Nested, Recursive 등 다양한 스키마' },
 ]
 
 // 각 API별 엔드포인트 정의
@@ -296,6 +297,152 @@ const endpointsByApi: Record<string, Endpoint[]> = {
       method: 'GET',
       path: '/tags',
       params: [],
+    },
+  ],
+  EdgeCases: [
+    // Primitive response types
+    {
+      id: 'getTotalCount',
+      method: 'GET',
+      path: '/stats/count',
+      params: [],
+    },
+    {
+      id: 'getSystemStatus',
+      method: 'GET',
+      path: '/stats/status',
+      params: [],
+    },
+    {
+      id: 'isFeatureEnabled',
+      method: 'GET',
+      path: '/stats/enabled',
+      params: [],
+    },
+    // Multiple path parameters
+    {
+      id: 'getCategoryProduct',
+      method: 'GET',
+      path: '/categories/{categoryId}/products/{productId}',
+      params: [
+        { name: 'categoryId', type: 'string', in: 'path', required: true, placeholder: 'cat-1' },
+        { name: 'productId', type: 'string', in: 'path', required: true, placeholder: 'prod-1' },
+      ],
+    },
+    {
+      id: 'getOrderItem',
+      method: 'GET',
+      path: '/users/{userId}/orders/{orderId}/items/{itemId}',
+      params: [
+        { name: 'userId', type: 'string', in: 'path', required: true, placeholder: 'user-1' },
+        { name: 'orderId', type: 'string', in: 'path', required: true, placeholder: 'order-1' },
+        { name: 'itemId', type: 'string', in: 'path', required: true, placeholder: 'item-1' },
+      ],
+    },
+    // Direct array response
+    {
+      id: 'getFeaturedProducts',
+      method: 'GET',
+      path: '/featured/products',
+      params: [],
+    },
+    {
+      id: 'getSearchSuggestions',
+      method: 'GET',
+      path: '/search/suggestions',
+      params: [
+        { name: 'q', type: 'string', in: 'query', required: true, placeholder: 'phone' },
+      ],
+    },
+    // Nullable fields
+    {
+      id: 'getProfile',
+      method: 'GET',
+      path: '/profiles/{id}',
+      params: [
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'user-1' },
+      ],
+    },
+    // Schema composition (allOf)
+    {
+      id: 'getAdminUser',
+      method: 'GET',
+      path: '/admin/users/{id}',
+      params: [
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'admin-1' },
+      ],
+    },
+    // Polymorphic (oneOf)
+    {
+      id: 'getNotification',
+      method: 'GET',
+      path: '/notifications/{id}',
+      params: [
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'notif-1' },
+      ],
+    },
+    // Deeply nested
+    {
+      id: 'getReport',
+      method: 'GET',
+      path: '/reports/{id}',
+      params: [
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'report-1' },
+      ],
+    },
+    // Recursive structure
+    {
+      id: 'getCategoryTree',
+      method: 'GET',
+      path: '/categories/{id}/tree',
+      params: [
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'cat-root' },
+      ],
+    },
+    // Various numeric types
+    {
+      id: 'getMetrics',
+      method: 'GET',
+      path: '/analytics/metrics',
+      params: [],
+    },
+    // Date formats
+    {
+      id: 'getEvent',
+      method: 'GET',
+      path: '/events/{id}',
+      params: [
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'event-1' },
+      ],
+    },
+    // Min/Max constraints
+    {
+      id: 'getSettings',
+      method: 'GET',
+      path: '/settings',
+      params: [],
+    },
+    // Map/Dictionary
+    {
+      id: 'getConfig',
+      method: 'GET',
+      path: '/config',
+      params: [],
+    },
+    // 204 No Content
+    {
+      id: 'clearCache',
+      method: 'DELETE',
+      path: '/cache',
+      params: [],
+    },
+    {
+      id: 'deleteSession',
+      method: 'DELETE',
+      path: '/sessions/{id}',
+      params: [
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'session-1' },
+      ],
     },
   ],
 }
