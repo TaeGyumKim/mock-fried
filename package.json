@@ -52,6 +52,11 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest watch",
+    "test:unit": "vitest run --exclude 'test/e2e/**'",
+    "test:e2e": "vitest run test/e2e/",
+    "test:e2e:openapi": "vitest run test/e2e/playground-openapi.e2e.test.ts",
+    "test:e2e:openapi-client": "vitest run test/e2e/playground-openapi-client.e2e.test.ts",
+    "test:e2e:proto": "vitest run test/e2e/playground-proto.e2e.test.ts",
     "test:types": "vue-tsc --noEmit && cd playground-openapi && vue-tsc --noEmit"
   },
   "dependencies": {
