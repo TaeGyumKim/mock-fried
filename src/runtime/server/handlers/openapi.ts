@@ -90,6 +90,15 @@ async function getOpenAPIBackend(specPath: string): Promise<any> {
         >
         | undefined
 
+      // 204 No Content 처리 (DELETE 등)
+      if (responses?.['204']) {
+        return {
+          statusCode: 204,
+          body: null,
+          meta: { operationId },
+        }
+      }
+
       const successResponse
         = responses?.['200'] || responses?.['201'] || Object.values(responses || {})[0]
       const content = successResponse?.content
@@ -375,8 +384,21 @@ function handleClientPackageRequest(
 
   const { endpoint, pathParams } = match
 
-  // Primitive/generic 타입 응답 처리 (object, string, number, boolean, void 등)
-  const primitiveTypes = ['object', 'string', 'number', 'boolean', 'void', 'any', 'unknown']
+  // void 응답 처리 (DELETE 등 204 No Content)
+  if (endpoint.responseType.toLowerCase() === 'void') {
+    return {
+      statusCode: 204,
+      body: null,
+      meta: {
+        operationId: endpoint.operationId,
+        apiClass: endpoint.apiClassName,
+        responseType: endpoint.responseType,
+      },
+    }
+  }
+
+  // Primitive/generic 타입 응답 처리 (object, string, number, boolean 등)
+  const primitiveTypes = ['object', 'string', 'number', 'boolean', 'any', 'unknown']
   if (primitiveTypes.includes(endpoint.responseType.toLowerCase())) {
     // 경로명 기반으로 적절한 기본 응답 생성
     const pathLower = path.toLowerCase()

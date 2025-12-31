@@ -49,11 +49,11 @@ export function inferValueByFieldName(
     return `https://picsum.photos/seed/${rng.nextInt(1, 1000)}/200/200`
   }
 
-  // 날짜/시간
+  // 날짜/시간 - 결정적 타임스탬프 생성 (2024-01-01 기준)
   if (name.includes('date') || name.endsWith('at') || name.includes('time') || name.includes('created') || name.includes('updated')) {
-    const now = Date.now()
-    const offset = rng.nextInt(-365, 30) * 24 * 60 * 60 * 1000
-    return new Date(now + offset).toISOString()
+    const baseTimestamp = 1704067200000 // 2024-01-01T00:00:00Z
+    const offset = rng.nextInt(-365, 365) * 24 * 60 * 60 * 1000
+    return new Date(baseTimestamp + offset).toISOString()
   }
 
   // 설명/내용
@@ -377,44 +377,45 @@ export function inferBooleanByFieldName(fieldName: string, rng: SeededRandom): b
 
 /**
  * Date 타입 필드의 값 생성
+ * 결정적 타임스탬프 생성 (2024-01-01 기준)
  */
 export function inferDateByFieldName(fieldName: string, rng: SeededRandom): string {
   const name = fieldName.toLowerCase()
-  const now = Date.now()
+  const baseTimestamp = 1704067200000 // 2024-01-01T00:00:00Z
 
   // 생성일/등록일 - 과거
   if (name.includes('created') || name.includes('registered') || name.includes('joined')) {
     const offset = rng.nextInt(-365, -1) * 24 * 60 * 60 * 1000
-    return new Date(now + offset).toISOString()
+    return new Date(baseTimestamp + offset).toISOString()
   }
 
-  // 수정일/업데이트 - 최근
+  // 수정일/업데이트 - 최근 (기준일 기준)
   if (name.includes('updated') || name.includes('modified')) {
     const offset = rng.nextInt(-30, 0) * 24 * 60 * 60 * 1000
-    return new Date(now + offset).toISOString()
+    return new Date(baseTimestamp + offset).toISOString()
   }
 
   // 만료일/마감일 - 미래
   if (name.includes('expir') || name.includes('deadline') || name.includes('due')) {
     const offset = rng.nextInt(1, 365) * 24 * 60 * 60 * 1000
-    return new Date(now + offset).toISOString()
+    return new Date(baseTimestamp + offset).toISOString()
   }
 
   // 시작일
   if (name.includes('start') || name.includes('begin')) {
     const offset = rng.nextInt(-30, 30) * 24 * 60 * 60 * 1000
-    return new Date(now + offset).toISOString()
+    return new Date(baseTimestamp + offset).toISOString()
   }
 
   // 종료일
   if (name.includes('end') || name.includes('finish')) {
     const offset = rng.nextInt(1, 90) * 24 * 60 * 60 * 1000
-    return new Date(now + offset).toISOString()
+    return new Date(baseTimestamp + offset).toISOString()
   }
 
-  // 기본: -1년 ~ +1달 범위
-  const offset = rng.nextInt(-365, 30) * 24 * 60 * 60 * 1000
-  return new Date(now + offset).toISOString()
+  // 기본: -1년 ~ +1년 범위
+  const offset = rng.nextInt(-365, 365) * 24 * 60 * 60 * 1000
+  return new Date(baseTimestamp + offset).toISOString()
 }
 
 /**
@@ -483,13 +484,13 @@ export function inferTypeFromFieldName(
     return rng.next() > 0.5
   }
 
-  // 날짜 관련
+  // 날짜 관련 - 결정적 타임스탬프 생성 (2024-01-01 기준)
   if (name.includes('date') || name.endsWith('at') || name.includes('time')
     || name.includes('created') || name.includes('updated') || name.includes('modified')
     || name.includes('deadline')) {
-    const now = Date.now()
-    const offset = rng.nextInt(-365, 30) * 24 * 60 * 60 * 1000
-    return new Date(now + offset).toISOString()
+    const baseTimestamp = 1704067200000 // 2024-01-01T00:00:00Z
+    const offset = rng.nextInt(-365, 365) * 24 * 60 * 60 * 1000
+    return new Date(baseTimestamp + offset).toISOString()
   }
 
   // 기간 (일/월 수)

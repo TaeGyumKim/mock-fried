@@ -96,8 +96,7 @@ describe('OpenAPI Spec File Mode E2E', async () => {
     })
 
     describe('DELETE /mock/users/{id}', () => {
-      // TODO: DELETE returns object instead of empty response
-      it.skip('should handle user deletion', async () => {
+      it('should handle user deletion', async () => {
         const response = await $fetch('/mock/users/user-123', {
           method: 'DELETE',
         })
@@ -205,8 +204,7 @@ describe('OpenAPI Spec File Mode E2E', async () => {
     })
 
     describe('POST /mock/posts', () => {
-      // TODO: Fix "Cannot create property 'id' on string" bug in pagination
-      it.skip('should handle post creation', async () => {
+      it('should handle post creation', async () => {
         const response = await $fetch('/mock/posts', {
           method: 'POST',
           body: {
@@ -222,8 +220,7 @@ describe('OpenAPI Spec File Mode E2E', async () => {
     })
 
     describe('GET /mock/posts/{id}', () => {
-      // TODO: Fix "Cannot create property 'id' on string" bug in pagination
-      it.skip('should return post by id', async () => {
+      it('should return post by id', async () => {
         const response = await $fetch('/mock/posts/post-123')
 
         expect(response).toBeDefined()

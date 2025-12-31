@@ -33,8 +33,7 @@ describe('OpenAPI Client Package Mode E2E', async () => {
         expect(response).toBeDefined()
       })
 
-      // TODO: Timestamp differences cause inconsistency
-      it.skip('should return consistent data for same query', async () => {
+      it('should return consistent data for same query', async () => {
         const response1 = await $fetch('/mock/users?page=1&limit=5')
         const response2 = await $fetch('/mock/users?page=1&limit=5')
 
@@ -50,8 +49,7 @@ describe('OpenAPI Client Package Mode E2E', async () => {
         expect(typeof response).toBe('object')
       })
 
-      // TODO: Timestamp differences cause inconsistency
-      it.skip('should return consistent data for same id', async () => {
+      it('should return consistent data for same id', async () => {
         const response1 = await $fetch('/mock/users/same-user')
         const response2 = await $fetch('/mock/users/same-user')
 
@@ -60,8 +58,7 @@ describe('OpenAPI Client Package Mode E2E', async () => {
     })
 
     describe('deleteUser', () => {
-      // TODO: DELETE returns object instead of empty response
-      it.skip('should handle deletion request', async () => {
+      it('should handle deletion request', async () => {
         const response = await $fetch('/mock/users/user-123', {
           method: 'DELETE',
         })
@@ -223,8 +220,7 @@ describe('OpenAPI Client Package Mode E2E', async () => {
   // Data Consistency
   // ============================================
   describe('Data Consistency', () => {
-    // TODO: Timestamp differences cause inconsistency
-    it.skip('should return consistent data for same user id', async () => {
+    it('should return consistent data for same user id', async () => {
       const response1 = await $fetch('/mock/users/user-123')
       const response2 = await $fetch('/mock/users/user-123')
 

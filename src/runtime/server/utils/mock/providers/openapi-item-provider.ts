@@ -103,6 +103,12 @@ export class OpenAPIItemProvider implements ItemProvider<Record<string, unknown>
    */
   generateItemWithId(id: string | number, index: number, seed: string): Record<string, unknown> {
     const item = this.generateItem(index, seed)
+
+    // primitive 타입인 경우 객체로 래핑 (스키마가 string/number 등일 때)
+    if (typeof item !== 'object' || item === null) {
+      return { [this.idFieldName]: id, value: item }
+    }
+
     item[this.idFieldName] = id
     return item
   }
