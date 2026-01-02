@@ -1,30 +1,28 @@
 
-# PostListResponse
+# PrivacySettings
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`items` | [Array&lt;Post&gt;](Post.md)
-`nextCursor` | string
-`prevCursor` | string
-`hasMore` | boolean
-`hasPrev` | boolean
+`profileVisible` | boolean
+`showEmail` | boolean
+`showPhone` | boolean
+`dataSharing` | boolean
 
 ## Example
 
 ```typescript
-import type { PostListResponse } from ''
+import type { PrivacySettings } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "items": null,
-  "nextCursor": null,
-  "prevCursor": null,
-  "hasMore": null,
-  "hasPrev": null,
-} satisfies PostListResponse
+  "profileVisible": null,
+  "showEmail": null,
+  "showPhone": null,
+  "dataSharing": null,
+} satisfies PrivacySettings
 
 console.log(example)
 
@@ -33,7 +31,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as PostListResponse
+const exampleParsed = JSON.parse(exampleJSON) as PrivacySettings
 console.log(exampleParsed)
 ```
 

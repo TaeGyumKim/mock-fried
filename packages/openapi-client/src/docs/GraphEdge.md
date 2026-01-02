@@ -1,30 +1,26 @@
 
-# PostListResponse
+# GraphEdge
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`items` | [Array&lt;Post&gt;](Post.md)
-`nextCursor` | string
-`prevCursor` | string
-`hasMore` | boolean
-`hasPrev` | boolean
+`targetId` | string
+`weight` | number
+`label` | string
 
 ## Example
 
 ```typescript
-import type { PostListResponse } from ''
+import type { GraphEdge } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "items": null,
-  "nextCursor": null,
-  "prevCursor": null,
-  "hasMore": null,
-  "hasPrev": null,
-} satisfies PostListResponse
+  "targetId": null,
+  "weight": null,
+  "label": null,
+} satisfies GraphEdge
 
 console.log(example)
 
@@ -33,7 +29,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as PostListResponse
+const exampleParsed = JSON.parse(exampleJSON) as GraphEdge
 console.log(exampleParsed)
 ```
 

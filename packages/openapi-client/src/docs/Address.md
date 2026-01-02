@@ -1,30 +1,32 @@
 
-# PostListResponse
+# Address
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`items` | [Array&lt;Post&gt;](Post.md)
-`nextCursor` | string
-`prevCursor` | string
-`hasMore` | boolean
-`hasPrev` | boolean
+`street` | string
+`city` | string
+`state` | string
+`country` | string
+`zipCode` | string
+`coordinates` | [Coordinates](Coordinates.md)
 
 ## Example
 
 ```typescript
-import type { PostListResponse } from ''
+import type { Address } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "items": null,
-  "nextCursor": null,
-  "prevCursor": null,
-  "hasMore": null,
-  "hasPrev": null,
-} satisfies PostListResponse
+  "street": null,
+  "city": null,
+  "state": null,
+  "country": null,
+  "zipCode": null,
+  "coordinates": null,
+} satisfies Address
 
 console.log(example)
 
@@ -33,7 +35,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as PostListResponse
+const exampleParsed = JSON.parse(exampleJSON) as Address
 console.log(exampleParsed)
 ```
 

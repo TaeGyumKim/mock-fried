@@ -1,30 +1,28 @@
 
-# PostListResponse
+# TreeNode
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`items` | [Array&lt;Post&gt;](Post.md)
-`nextCursor` | string
-`prevCursor` | string
-`hasMore` | boolean
-`hasPrev` | boolean
+`id` | string
+`name` | string
+`value` | string
+`children` | [Array&lt;TreeNode&gt;](TreeNode.md)
 
 ## Example
 
 ```typescript
-import type { PostListResponse } from ''
+import type { TreeNode } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "items": null,
-  "nextCursor": null,
-  "prevCursor": null,
-  "hasMore": null,
-  "hasPrev": null,
-} satisfies PostListResponse
+  "id": null,
+  "name": null,
+  "value": null,
+  "children": null,
+} satisfies TreeNode
 
 console.log(example)
 
@@ -33,7 +31,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as PostListResponse
+const exampleParsed = JSON.parse(exampleJSON) as TreeNode
 console.log(exampleParsed)
 ```
 

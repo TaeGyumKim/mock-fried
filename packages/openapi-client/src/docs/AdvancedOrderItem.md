@@ -1,30 +1,30 @@
 
-# PostListResponse
+# AdvancedOrderItem
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`items` | [Array&lt;Post&gt;](Post.md)
-`nextCursor` | string
-`prevCursor` | string
-`hasMore` | boolean
-`hasPrev` | boolean
+`productId` | string
+`productName` | string
+`quantity` | number
+`unitPrice` | number
+`discount` | number
 
 ## Example
 
 ```typescript
-import type { PostListResponse } from ''
+import type { AdvancedOrderItem } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "items": null,
-  "nextCursor": null,
-  "prevCursor": null,
-  "hasMore": null,
-  "hasPrev": null,
-} satisfies PostListResponse
+  "productId": null,
+  "productName": null,
+  "quantity": null,
+  "unitPrice": null,
+  "discount": null,
+} satisfies AdvancedOrderItem
 
 console.log(example)
 
@@ -33,7 +33,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as PostListResponse
+const exampleParsed = JSON.parse(exampleJSON) as AdvancedOrderItem
 console.log(exampleParsed)
 ```
 

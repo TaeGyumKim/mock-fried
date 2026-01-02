@@ -1,30 +1,30 @@
 
-# PostListResponse
+# Department
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`items` | [Array&lt;Post&gt;](Post.md)
-`nextCursor` | string
-`prevCursor` | string
-`hasMore` | boolean
-`hasPrev` | boolean
+`id` | string
+`name` | string
+`headCount` | number
+`manager` | [Employee](Employee.md)
+`subDepartments` | [Array&lt;Department&gt;](Department.md)
 
 ## Example
 
 ```typescript
-import type { PostListResponse } from ''
+import type { Department } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "items": null,
-  "nextCursor": null,
-  "prevCursor": null,
-  "hasMore": null,
-  "hasPrev": null,
-} satisfies PostListResponse
+  "id": null,
+  "name": null,
+  "headCount": null,
+  "manager": null,
+  "subDepartments": null,
+} satisfies Department
 
 console.log(example)
 
@@ -33,7 +33,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as PostListResponse
+const exampleParsed = JSON.parse(exampleJSON) as Department
 console.log(exampleParsed)
 ```
 

@@ -41,10 +41,22 @@ export interface PostListResponse {
     nextCursor?: string;
     /**
      * 
+     * @type {string}
+     * @memberof PostListResponse
+     */
+    prevCursor?: string;
+    /**
+     * 
      * @type {boolean}
      * @memberof PostListResponse
      */
     hasMore?: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof PostListResponse
+     */
+    hasPrev?: boolean;
 }
 
 /**
@@ -67,7 +79,9 @@ export function PostListResponseFromJSONTyped(json: any, ignoreDiscriminator: bo
         
         'items': ((json['items'] as Array<any>).map(PostFromJSON)),
         'nextCursor': json['nextCursor'] == null ? undefined : json['nextCursor'],
+        'prevCursor': json['prevCursor'] == null ? undefined : json['prevCursor'],
         'hasMore': json['hasMore'] == null ? undefined : json['hasMore'],
+        'hasPrev': json['hasPrev'] == null ? undefined : json['hasPrev'],
     };
 }
 
@@ -84,7 +98,9 @@ export function PostListResponseToJSONTyped(value?: PostListResponse | null, ign
         
         'items': ((value['items'] as Array<any>).map(PostToJSON)),
         'nextCursor': value['nextCursor'],
+        'prevCursor': value['prevCursor'],
         'hasMore': value['hasMore'],
+        'hasPrev': value['hasPrev'],
     };
 }
 

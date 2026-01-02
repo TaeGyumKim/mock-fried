@@ -1,30 +1,30 @@
 
-# PostListResponse
+# UserPreferences
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`items` | [Array&lt;Post&gt;](Post.md)
-`nextCursor` | string
-`prevCursor` | string
-`hasMore` | boolean
-`hasPrev` | boolean
+`theme` | string
+`language` | string
+`timezone` | string
+`notifications` | [NotificationSettings](NotificationSettings.md)
+`privacy` | [PrivacySettings](PrivacySettings.md)
 
 ## Example
 
 ```typescript
-import type { PostListResponse } from ''
+import type { UserPreferences } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "items": null,
-  "nextCursor": null,
-  "prevCursor": null,
-  "hasMore": null,
-  "hasPrev": null,
-} satisfies PostListResponse
+  "theme": null,
+  "language": null,
+  "timezone": null,
+  "notifications": null,
+  "privacy": null,
+} satisfies UserPreferences
 
 console.log(example)
 
@@ -33,7 +33,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as PostListResponse
+const exampleParsed = JSON.parse(exampleJSON) as UserPreferences
 console.log(exampleParsed)
 ```
 

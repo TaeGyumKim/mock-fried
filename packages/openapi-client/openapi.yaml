@@ -818,6 +818,240 @@ paths:
         '204':
           description: Session deleted
 
+  # ============================================
+  # AdvancedCases - Proto AdvancedService 대응
+  # ============================================
+  /advanced/scalars:
+    get:
+      operationId: getAllScalarTypes
+      summary: Get all scalar types (Proto3 feature testing)
+      tags: [AdvancedCases]
+      responses:
+        '200':
+          description: All scalar types
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllScalarTypes'
+
+  /advanced/company/{id}:
+    get:
+      operationId: getCompany
+      summary: Get company with deep nesting
+      tags: [AdvancedCases]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Company with nested structure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Company'
+
+  /advanced/preferences:
+    get:
+      operationId: getUserPreferences
+      summary: Get user preferences (optional fields)
+      tags: [AdvancedCases]
+      responses:
+        '200':
+          description: User preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+
+    put:
+      operationId: updateUserPreferences
+      summary: Update user preferences
+      tags: [AdvancedCases]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPreferences'
+      responses:
+        '200':
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+
+  /advanced/orders:
+    get:
+      operationId: listAdvancedOrders
+      summary: List orders with nested enum (page pagination)
+      tags: [AdvancedCases]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of advanced orders
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedOrderListResponse'
+
+  /advanced/orders/{id}:
+    get:
+      operationId: getAdvancedOrder
+      summary: Get order with nested enum
+      tags: [AdvancedCases]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Advanced order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedOrder'
+
+  /advanced/tree/{id}:
+    get:
+      operationId: getTreeNode
+      summary: Get tree node (recursive structure)
+      tags: [AdvancedCases]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tree node with children
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TreeNode'
+
+  /advanced/org-chart/{id}:
+    get:
+      operationId: getOrgChart
+      summary: Get organization chart (recursive)
+      tags: [AdvancedCases]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Organization member with reports
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgMember'
+
+  /advanced/comment-thread/{id}:
+    get:
+      operationId: getCommentThread
+      summary: Get comment thread (recursive)
+      tags: [AdvancedCases]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Comment with nested replies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentThread'
+
+  /advanced/graph/{id}:
+    get:
+      operationId: getGraph
+      summary: Get graph node (recursive with edges)
+      tags: [AdvancedCases]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Graph node with edges
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphNode'
+
+  # ============================================
+  # Activities - 양방향 Cursor Pagination
+  # ============================================
+  /activities:
+    get:
+      operationId: listActivities
+      summary: List activities (bidirectional cursor pagination)
+      tags: [Activities]
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: userId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of activities with bidirectional cursors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityListResponse'
+
+  /activities/{id}:
+    get:
+      operationId: getActivity
+      summary: Get activity by ID
+      tags: [Activities]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Activity details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activity'
+
 components:
   schemas:
     # ============================================
@@ -1085,7 +1319,11 @@ components:
             $ref: '#/components/schemas/Post'
         nextCursor:
           type: string
+        prevCursor:
+          type: string
         hasMore:
+          type: boolean
+        hasPrev:
           type: boolean
 
     CreatePostRequest:
@@ -1542,3 +1780,392 @@ components:
           - type: string
           - type: number
           - type: boolean
+
+    # ============================================
+    # AdvancedCases Models
+    # ============================================
+    AllScalarTypes:
+      type: object
+      required: [doubleVal, floatVal, int32Val, int64Val, uint32Val, uint64Val, boolVal, stringVal, bytesVal]
+      properties:
+        doubleVal:
+          type: number
+          format: double
+        floatVal:
+          type: number
+          format: float
+        int32Val:
+          type: integer
+          format: int32
+        int64Val:
+          type: integer
+          format: int64
+        uint32Val:
+          type: integer
+          format: int32
+        uint64Val:
+          type: integer
+          format: int64
+        sint32Val:
+          type: integer
+          format: int32
+        sint64Val:
+          type: integer
+          format: int64
+        fixed32Val:
+          type: integer
+          format: int32
+        fixed64Val:
+          type: integer
+          format: int64
+        sfixed32Val:
+          type: integer
+          format: int32
+        sfixed64Val:
+          type: integer
+          format: int64
+        boolVal:
+          type: boolean
+        stringVal:
+          type: string
+        bytesVal:
+          type: string
+          format: byte
+
+    Company:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        address:
+          $ref: '#/components/schemas/Address'
+        departments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Department'
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        country:
+          type: string
+        zipCode:
+          type: string
+        coordinates:
+          $ref: '#/components/schemas/Coordinates'
+
+    Coordinates:
+      type: object
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+
+    Department:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        headCount:
+          type: integer
+        manager:
+          $ref: '#/components/schemas/Employee'
+        subDepartments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Department'
+
+    Employee:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        title:
+          type: string
+        email:
+          type: string
+          format: email
+
+    UserPreferences:
+      type: object
+      properties:
+        theme:
+          type: string
+          enum: [light, dark, system]
+        language:
+          type: string
+        timezone:
+          type: string
+        notifications:
+          $ref: '#/components/schemas/NotificationSettings'
+        privacy:
+          $ref: '#/components/schemas/PrivacySettings'
+
+    NotificationSettings:
+      type: object
+      properties:
+        email:
+          type: boolean
+        push:
+          type: boolean
+        sms:
+          type: boolean
+        frequency:
+          type: string
+          enum: [immediate, hourly, daily, weekly]
+
+    PrivacySettings:
+      type: object
+      properties:
+        profileVisible:
+          type: boolean
+        showEmail:
+          type: boolean
+        showPhone:
+          type: boolean
+        dataSharing:
+          type: boolean
+
+    AdvancedOrder:
+      type: object
+      required: [id, status, priority]
+      properties:
+        id:
+          type: string
+        customerId:
+          type: string
+        status:
+          type: string
+          enum: [pending, processing, shipped, delivered, cancelled]
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdvancedOrderItem'
+        shipping:
+          $ref: '#/components/schemas/ShippingInfo'
+        payment:
+          $ref: '#/components/schemas/PaymentInfo'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AdvancedOrderItem:
+      type: object
+      properties:
+        productId:
+          type: string
+        productName:
+          type: string
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+          format: double
+        discount:
+          type: number
+          format: double
+
+    ShippingInfo:
+      type: object
+      properties:
+        method:
+          type: string
+          enum: [standard, express, overnight, pickup]
+        address:
+          $ref: '#/components/schemas/Address'
+        estimatedDelivery:
+          type: string
+          format: date
+        trackingNumber:
+          type: string
+
+    PaymentInfo:
+      type: object
+      properties:
+        method:
+          type: string
+          enum: [credit_card, debit_card, paypal, bank_transfer, crypto]
+        status:
+          type: string
+          enum: [pending, completed, failed, refunded]
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+
+    AdvancedOrderListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdvancedOrder'
+        page:
+          type: integer
+        totalPages:
+          type: integer
+        total:
+          type: integer
+        limit:
+          type: integer
+
+    TreeNode:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        value:
+          type: string
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/TreeNode'
+
+    OrgMember:
+      type: object
+      required: [id, name, title]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        title:
+          type: string
+        department:
+          type: string
+        email:
+          type: string
+          format: email
+        directReports:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrgMember'
+
+    CommentThread:
+      type: object
+      required: [id, content, author]
+      properties:
+        id:
+          type: string
+        content:
+          type: string
+        author:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        likes:
+          type: integer
+        replies:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommentThread'
+
+    GraphNode:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        weight:
+          type: number
+          format: double
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/GraphEdge'
+
+    GraphEdge:
+      type: object
+      properties:
+        targetId:
+          type: string
+        weight:
+          type: number
+          format: double
+        label:
+          type: string
+
+    # ============================================
+    # Activities Models (양방향 Cursor Pagination)
+    # ============================================
+    Activity:
+      type: object
+      required: [id, userId, type, description, createdAt]
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        type:
+          type: string
+          enum: [login, logout, view, create, update, delete, share, comment]
+        description:
+          type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        ipAddress:
+          type: string
+        userAgent:
+          type: string
+
+    ActivityListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Activity'
+        nextCursor:
+          type: string
+        prevCursor:
+          type: string
+        hasMore:
+          type: boolean
+        hasPrev:
+          type: boolean
+        total:
+          type: integer

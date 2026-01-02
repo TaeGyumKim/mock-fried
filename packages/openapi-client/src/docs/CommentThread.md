@@ -1,30 +1,32 @@
 
-# PostListResponse
+# CommentThread
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`items` | [Array&lt;Post&gt;](Post.md)
-`nextCursor` | string
-`prevCursor` | string
-`hasMore` | boolean
-`hasPrev` | boolean
+`id` | string
+`content` | string
+`author` | string
+`createdAt` | Date
+`likes` | number
+`replies` | [Array&lt;CommentThread&gt;](CommentThread.md)
 
 ## Example
 
 ```typescript
-import type { PostListResponse } from ''
+import type { CommentThread } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "items": null,
-  "nextCursor": null,
-  "prevCursor": null,
-  "hasMore": null,
-  "hasPrev": null,
-} satisfies PostListResponse
+  "id": null,
+  "content": null,
+  "author": null,
+  "createdAt": null,
+  "likes": null,
+  "replies": null,
+} satisfies CommentThread
 
 console.log(example)
 
@@ -33,7 +35,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as PostListResponse
+const exampleParsed = JSON.parse(exampleJSON) as CommentThread
 console.log(exampleParsed)
 ```
 

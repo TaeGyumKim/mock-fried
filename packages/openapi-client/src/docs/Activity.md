@@ -1,30 +1,36 @@
 
-# PostListResponse
+# Activity
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`items` | [Array&lt;Post&gt;](Post.md)
-`nextCursor` | string
-`prevCursor` | string
-`hasMore` | boolean
-`hasPrev` | boolean
+`id` | string
+`userId` | string
+`type` | string
+`description` | string
+`metadata` | { [key: string]: string; }
+`createdAt` | Date
+`ipAddress` | string
+`userAgent` | string
 
 ## Example
 
 ```typescript
-import type { PostListResponse } from ''
+import type { Activity } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "items": null,
-  "nextCursor": null,
-  "prevCursor": null,
-  "hasMore": null,
-  "hasPrev": null,
-} satisfies PostListResponse
+  "id": null,
+  "userId": null,
+  "type": null,
+  "description": null,
+  "metadata": null,
+  "createdAt": null,
+  "ipAddress": null,
+  "userAgent": null,
+} satisfies Activity
 
 console.log(example)
 
@@ -33,7 +39,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as PostListResponse
+const exampleParsed = JSON.parse(exampleJSON) as Activity
 console.log(exampleParsed)
 ```
 
