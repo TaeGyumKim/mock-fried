@@ -135,10 +135,12 @@ export function clearProtoCache(): void {
 }
 
 /**
- * Protobuf 타입 번호를 문자열로 변환
+ * Protobuf 타입 문자열 변환
+ * proto-loader는 타입을 "TYPE_INT32" 같은 문자열로 반환할 수 있음
  * https://protobuf.dev/programming-guides/proto3/#scalar
  */
-const PROTO_TYPE_MAP: Record<number, string> = {
+const PROTO_TYPE_MAP: Record<string | number, string> = {
+  // 숫자 키 (legacy/fallback)
   1: 'double',
   2: 'float',
   3: 'int64',
@@ -149,7 +151,7 @@ const PROTO_TYPE_MAP: Record<number, string> = {
   8: 'bool',
   9: 'string',
   10: 'group',
-  11: 'message', // 중첩 메시지
+  11: 'message',
   12: 'bytes',
   13: 'uint32',
   14: 'enum',
@@ -157,16 +159,36 @@ const PROTO_TYPE_MAP: Record<number, string> = {
   16: 'sfixed64',
   17: 'sint32',
   18: 'sint64',
+  // 문자열 키 (proto-loader 실제 반환값)
+  TYPE_DOUBLE: 'double',
+  TYPE_FLOAT: 'float',
+  TYPE_INT64: 'int64',
+  TYPE_UINT64: 'uint64',
+  TYPE_INT32: 'int32',
+  TYPE_FIXED64: 'fixed64',
+  TYPE_FIXED32: 'fixed32',
+  TYPE_BOOL: 'bool',
+  TYPE_STRING: 'string',
+  TYPE_GROUP: 'group',
+  TYPE_MESSAGE: 'message',
+  TYPE_BYTES: 'bytes',
+  TYPE_UINT32: 'uint32',
+  TYPE_ENUM: 'enum',
+  TYPE_SFIXED32: 'sfixed32',
+  TYPE_SFIXED64: 'sfixed64',
+  TYPE_SINT32: 'sint32',
+  TYPE_SINT64: 'sint64',
 }
 
 /**
  * Protobuf 필드 descriptor 인터페이스
+ * proto-loader는 label/type을 문자열로 반환할 수 있음 (예: "LABEL_REPEATED", "TYPE_INT32")
  */
 interface ProtoFieldDescriptor {
   name: string
   number: number
-  label: number // 1=OPTIONAL, 2=REQUIRED, 3=REPEATED
-  type: number // PROTO_TYPE_MAP 참조
+  label: number | string // 3 또는 "LABEL_REPEATED" = repeated
+  type: number | string // PROTO_TYPE_MAP 참조
   typeName?: string // 메시지/enum 타입 이름
   defaultValue?: unknown
   oneofIndex?: number // oneof 필드 인덱스
@@ -196,20 +218,41 @@ interface TypeResolverContext {
 
 /**
  * packageDefinition에서 타입 정보 찾기
+ * typeName은 ".package.TypeName", "package.TypeName", 또는 "TypeName" 형식일 수 있음
  */
 function findTypeInPackageDefinition(
   typeName: string,
   packageDefinition: protoLoader.PackageDefinition,
 ): ProtoTypeDescriptor | null {
-  // typeName은 ".package.TypeName" 형식
+  // 1. 정확한 이름으로 먼저 시도
   const cleanName = typeName.startsWith('.') ? typeName.slice(1) : typeName
 
-  // packageDefinition에서 타입 찾기
-  const typeInfo = packageDefinition[cleanName] as unknown as {
+  const directMatch = packageDefinition[cleanName] as unknown as {
     type?: ProtoTypeDescriptor
   } | undefined
 
-  return typeInfo?.type || null
+  if (directMatch?.type) {
+    return directMatch.type
+  }
+
+  // 2. 패키지 접두사 없는 짧은 이름인 경우, packageDefinition 키에서 검색
+  // 예: "Product" -> "example.Product"에서 찾기
+  if (!cleanName.includes('.')) {
+    for (const key of Object.keys(packageDefinition)) {
+      // key가 ".TypeName" 또는 "package.TypeName" 형식으로 끝나는지 확인
+      if (key.endsWith(`.${cleanName}`)) {
+        const matchedType = packageDefinition[key] as unknown as {
+          type?: ProtoTypeDescriptor
+        } | undefined
+
+        if (matchedType?.type) {
+          return matchedType.type
+        }
+      }
+    }
+  }
+
+  return null
 }
 
 /**
@@ -222,6 +265,9 @@ function convertFieldDescriptor(
 ): { type: string, rule?: string, resolvedType?: Record<string, unknown>, typeName?: string } {
   const typeName = PROTO_TYPE_MAP[fieldDesc.type] || 'string'
 
+  // label 체크: 숫자 3 또는 문자열 'LABEL_REPEATED'
+  const isRepeated = fieldDesc.label === 3 || fieldDesc.label === 'LABEL_REPEATED'
+
   const result: {
     type: string
     rule?: string
@@ -229,7 +275,7 @@ function convertFieldDescriptor(
     typeName?: string
   } = {
     type: typeName,
-    rule: fieldDesc.label === 3 ? 'repeated' : undefined,
+    rule: isRepeated ? 'repeated' : undefined,
   }
 
   // 중첩 메시지 또는 enum 타입인 경우
@@ -237,15 +283,9 @@ function convertFieldDescriptor(
     const shortName = fieldDesc.typeName.split('.').pop() || fieldDesc.typeName
     result.typeName = shortName
 
-    // 깊이 제한 체크
+    // 깊이 제한 체크 - 재귀 타입 해결을 depth로만 제한
+    // visitedTypes 체크 대신 depth 제한으로 무한 재귀 방지
     if (context.depth >= context.maxDepth) {
-      return result
-    }
-
-    // 이미 방문한 타입인지 체크 (재귀 방지)
-    if (context.visitedTypes.has(fieldDesc.typeName)) {
-      // 재귀 타입: 빈 resolvedType 반환하여 generateMockMessage에서 처리하도록
-      result.resolvedType = { fields: {}, name: shortName }
       return result
     }
 
