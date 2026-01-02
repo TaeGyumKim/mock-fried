@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Enable Corepack
         run: corepack enable
@@ -34,7 +34,7 @@ jobs:
     needs: lint
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Enable Corepack
         run: corepack enable
@@ -58,7 +58,7 @@ jobs:
     needs: lint
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Enable Corepack
         run: corepack enable
@@ -89,7 +89,7 @@ jobs:
     needs: build
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Enable Corepack
         run: corepack enable
@@ -131,7 +131,7 @@ jobs:
             test-file: test/e2e/playground-proto-advanced.e2e.test.ts
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Enable Corepack
         run: corepack enable
@@ -161,7 +161,7 @@ jobs:
     needs: build
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Enable Corepack
         run: corepack enable
