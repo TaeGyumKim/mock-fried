@@ -170,6 +170,12 @@ export function analyzeProtoPagination(messageType: ProtoMessageType): ProtoPagi
   const isPageBased = foundPageFields.length >= 2
   const isCursorBased = foundCursorFields.length >= 1
 
+  // Pagination으로 인식하려면 최소한 page 또는 cursor 메타 필드가 있어야 함
+  // 단순히 repeated 필드만 있는 경우 (예: TreeNode.children) pagination이 아님
+  if (!isPageBased && !isCursorBased) {
+    return null
+  }
+
   return {
     itemsFieldName,
     itemMessageType,
