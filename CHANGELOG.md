@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.0](https://github.com/TaeGyumKim/mock-fried/compare/v1.1.2...v1.2.0) (2026-01-02)
+
+
+### Features
+
+* add bidirectional cursor pagination ([afbe159](https://github.com/TaeGyumKim/mock-fried/commit/afbe159309083c9597eb386d1470403d7ffc0f59))
+* **openapi:** add AdvancedCases and Activities APIs ([cb75f40](https://github.com/TaeGyumKim/mock-fried/commit/cb75f40d6d831ee3b2dbf07e673975b6f3c11571))
+* **playground:** add AdvancedCases and Activities to API testers ([1e4413e](https://github.com/TaeGyumKim/mock-fried/commit/1e4413e0cd5909211e13b31e45b6c6754bca7680))
+* **proto:** add AdvancedService and ActivityService ([6643b5b](https://github.com/TaeGyumKim/mock-fried/commit/6643b5b88de9074757ee1275139164fee8916f65))
+
 ## [1.1.2](https://github.com/TaeGyumKim/mock-fried/compare/v1.1.1...v1.1.2) (2026-01-02)
 
 
