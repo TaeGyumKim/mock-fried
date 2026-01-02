@@ -64,6 +64,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref, watch } from 'vue'
 import type { RpcMethodSchema, RpcFieldSchema } from '../../types'
 
 const props = defineProps<{
@@ -84,7 +85,7 @@ const fieldValues = ref<Record<string, string>>({})
 const jsonValue = ref('')
 
 // 필드 값 변경 시 JSON 동기화
-watch(fieldValues, (values) => {
+watch(fieldValues, (values: Record<string, string>) => {
   const obj: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(values)) {
     if (value) {

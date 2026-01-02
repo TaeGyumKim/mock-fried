@@ -88,7 +88,9 @@
 </template>
 
 <script setup lang="ts">
-import type { ApiSchema } from '../../types'
+import { ref, onMounted } from 'vue'
+import { useNuxtApp } from '#imports'
+import type { ApiSchema, ApiClient } from '../../types'
 import EndpointCard from './EndpointCard.vue'
 import RpcMethodCard from './RpcMethodCard.vue'
 import ResponseViewer from './ResponseViewer.vue'
@@ -98,7 +100,7 @@ defineProps<{
   description?: string
 }>()
 
-const { $api } = useNuxtApp()
+const { $api } = useNuxtApp() as unknown as { $api: ApiClient }
 
 const schema = ref<ApiSchema | null>(null)
 const loading = ref(true)

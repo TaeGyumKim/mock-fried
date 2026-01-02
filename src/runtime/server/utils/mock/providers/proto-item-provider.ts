@@ -92,7 +92,7 @@ export class ProtoItemProvider implements ItemProvider<Record<string, unknown>> 
    */
   generateItem(index: number, seed: string): Record<string, unknown> {
     const numericSeed = hashString(`${seed}-${index}`)
-    const item = generateMockMessage(this.messageType, numericSeed)
+    const item = generateMockMessage(this.messageType as unknown as Record<string, unknown>, numericSeed)
     return item
   }
 

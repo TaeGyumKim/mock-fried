@@ -360,13 +360,15 @@ function resolveProtoType(
 function getResponseTypeInfo(
   methodDef: grpc.MethodDefinition<unknown, unknown>,
   packageDefinition: protoLoader.PackageDefinition,
-): Record<string, unknown> {
-  const responseType = methodDef.responseType as unknown as {
-    type?: ProtoTypeDescriptor
+): ProtoMessageType {
+  // grpc-js internal API - responseType exists but not in public type definitions
+  const methodDefWithResponseType = methodDef as unknown as {
+    responseType?: { type?: ProtoTypeDescriptor }
   }
+  const responseType = methodDefWithResponseType.responseType
 
   if (!responseType?.type?.field) {
-    return {}
+    return { name: 'unknown' }
   }
 
   const context: TypeResolverContext = {
@@ -376,7 +378,7 @@ function getResponseTypeInfo(
     maxDepth: 5, // 최대 재귀 깊이
   }
 
-  return resolveProtoType(responseType.type, context)
+  return resolveProtoType(responseType.type, context) as unknown as ProtoMessageType
 }
 
 export default defineEventHandler(async (event) => {
@@ -452,10 +454,11 @@ export default defineEventHandler(async (event) => {
   }
 
   // 응답 타입 정보 추출
-  const responseTypeInfo = getResponseTypeInfo(methodDef, cache.packageDefinition) as ProtoMessageType
+  const responseTypeInfo = getResponseTypeInfo(methodDef, cache.packageDefinition)
 
   // seed 생성 (결정론적)
-  const seed = deriveSeedFromRequest(requestBody)
+  const seedNum = deriveSeedFromRequest(requestBody)
+  const seed = String(seedNum)
 
   // Pagination 응답 분석
   const paginationInfo = analyzeProtoPagination(responseTypeInfo)
@@ -557,7 +560,7 @@ export default defineEventHandler(async (event) => {
   }
   else {
     // Pagination이 아닌 일반 응답
-    mockResponse = generateMockMessage(responseTypeInfo, seed)
+    mockResponse = generateMockMessage(responseTypeInfo as unknown as Record<string, unknown>, seedNum)
   }
 
   return {

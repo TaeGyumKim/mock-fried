@@ -42,7 +42,9 @@ function parseApiFile(filePath: string, fileName: string): ParsedEndpoint[] {
   while ((match = methodBodyRegex.exec(content)) !== null) {
     const methodName = match[1]
     const body = match[2]
-    methodBodies.set(methodName, body)
+    if (methodName && body) {
+      methodBodies.set(methodName, body)
+    }
   }
 
   // JSDoc과 메서드 시그니처 매칭
@@ -51,6 +53,8 @@ function parseApiFile(filePath: string, fileName: string): ParsedEndpoint[] {
     const jsdocContent = match[1]
     const operationId = match[2]
     const responseType = match[3]
+
+    if (!jsdocContent || !operationId || !responseType) continue
 
     // JSDoc에서 summary 추출 (마지막 * 라인 또는 첫 번째 의미있는 라인)
     const jsdocLines = jsdocContent.split('\n')
@@ -65,9 +69,9 @@ function parseApiFile(filePath: string, fileName: string): ParsedEndpoint[] {
 
     // path 추출 (openapi-generator 형식: let urlPath = `/users`)
     const pathMatch = body.match(/let\s+urlPath\s*=\s*`([^`]+)`/)
-    if (!pathMatch) continue
+    if (!pathMatch?.[1]) continue
 
-    let path = pathMatch[1]
+    let path: string = pathMatch[1]
     // ${...} 형태를 {param} 형태로 변환 또는 제거
     path = path.replace(/\$\{[^}]+\}/g, (match) => {
       // requestParameters.id 또는 requestParameters["id"] 형태 -> path param
@@ -90,11 +94,14 @@ function parseApiFile(filePath: string, fileName: string): ParsedEndpoint[] {
     const pathParams: ParsedParameter[] = []
     const pathParamMatches = path.matchAll(/\{(\w+)\}/g)
     for (const pm of pathParamMatches) {
-      pathParams.push({
-        name: pm[1],
-        type: 'string',
-        required: true,
-      })
+      const paramName = pm[1]
+      if (paramName) {
+        pathParams.push({
+          name: paramName,
+          type: 'string',
+          required: true,
+        })
+      }
     }
 
     // Query 파라미터 추출 (openapi-generator 형식: queryParameters['param'] = ...)
@@ -102,17 +109,20 @@ function parseApiFile(filePath: string, fileName: string): ParsedEndpoint[] {
     const queryParamRegex = /if\s*\(requestParameters\[?['"]?(\w+)['"]?\]?\s*!==?\s*(?:undefined|null)\)\s*\{\s*queryParameters\[['"](\w+)['"]\]/g
     let qpm
     while ((qpm = queryParamRegex.exec(body)) !== null) {
-      queryParams.push({
-        name: qpm[2],
-        type: 'string',
-        required: false,
-      })
+      const paramName = qpm[2]
+      if (paramName) {
+        queryParams.push({
+          name: paramName,
+          type: 'string',
+          required: false,
+        })
+      }
     }
 
     // Request Body 타입 추출
     let requestBodyType: string | undefined
     const bodyMatch = body.match(/body:\s*(\w+)ToJSON\(requestParameters\.(\w+)\)/)
-    if (bodyMatch) {
+    if (bodyMatch?.[1]) {
       requestBodyType = bodyMatch[1]
     }
 
@@ -149,7 +159,7 @@ function analyzeType(rawType: string): {
   if (isArray) {
     // Array<Type> 또는 Type[] 에서 Type 추출
     const arrayTypeMatch = rawType.match(/Array<(.+)>/) || rawType.match(/(.+)\[\]/)
-    if (arrayTypeMatch) {
+    if (arrayTypeMatch?.[1]) {
       type = arrayTypeMatch[1].trim()
     }
   }
@@ -180,11 +190,13 @@ function parseModelFile(filePath: string, fileName: string): ParsedModelSchema |
     // enum 이름이 modelName과 일치하는지 확인
     const enumRegex = new RegExp(`export\\s+const\\s+(${modelName})\\s*=\\s*\\{([^}]+)\\}\\s*as\\s*const`)
     const enumMatch = content.match(enumRegex)
-    if (enumMatch) {
+    if (enumMatch?.[2]) {
       const enumValues: string[] = []
       const valueMatches = enumMatch[2].matchAll(/(\w+):\s*['"]([^'"]+)['"]/g)
       for (const vm of valueMatches) {
-        enumValues.push(vm[2])
+        if (vm[2]) {
+          enumValues.push(vm[2])
+        }
       }
       if (enumValues.length > 0) {
         return {
@@ -204,13 +216,14 @@ function parseModelFile(filePath: string, fileName: string): ParsedModelSchema |
   // 전략 1: ToJSON 함수에서 필드 추출 및 JSON 키 매핑 파악
   // return { 'json_key': value.propertyName, ... }
   const toJsonMatch = content.match(/export\s+function\s+\w+ToJSON[^{]*\{[\s\S]*?return\s*\{([\s\S]*?)\};?\s*\}/)
-  if (toJsonMatch) {
+  if (toJsonMatch?.[1]) {
     const returnBody = toJsonMatch[1]
     // 'json_key': value.propertyName 패턴 - JSON 키와 프로퍼티명 둘 다 캡처
     const fieldMatches = returnBody.matchAll(/['"](\w+)['"]\s*:\s*(?:value\.(\w+)|[^,\n]*?value\.(\w+))/g)
 
     for (const fm of fieldMatches) {
-      const jsonKey = fm[1]!
+      const jsonKey = fm[1]
+      if (!jsonKey) continue
       const propertyName = fm[2] || fm[3]
       if (!propertyName) continue
 
@@ -233,28 +246,28 @@ function parseModelFile(filePath: string, fileName: string): ParsedModelSchema |
   // 전략 2: FromJSONTyped 함수에서 타입 힌트 추출
   // 'fieldName': !exists(json, 'fieldName') ? undefined : (new Date(json['fieldName'])),
   const fromJsonMatch = content.match(/export\s+function\s+\w+FromJSONTyped[^{]*\{[\s\S]*?return\s*\{([\s\S]*?)\};?\s*\}/)
-  if (fromJsonMatch) {
+  if (fromJsonMatch?.[1]) {
     const returnBody = fromJsonMatch[1]
 
     // Date 타입 감지: (new Date(json['fieldName']))
     const dateFields = new Set<string>()
     const dateMatches = returnBody.matchAll(/['"](\w+)['"]\s*:.*?new\s+Date\(/g)
     for (const dm of dateMatches) {
-      dateFields.add(dm[1])
+      if (dm[1]) dateFields.add(dm[1])
     }
 
     // 배열 타입 감지: (json['fieldName'] as Array<any>).map(...)
     const arrayFields = new Set<string>()
     const arrayMatches = returnBody.matchAll(/['"](\w+)['"]\s*:.*?\(json\[['"](\w+)['"]\]\s*as\s*Array/g)
     for (const am of arrayMatches) {
-      arrayFields.add(am[1])
+      if (am[1]) arrayFields.add(am[1])
     }
 
     // 참조 타입 감지: SomeTypeFromJSON(json['fieldName'])
     const refTypeMap = new Map<string, string>()
     const refMatches = returnBody.matchAll(/['"](\w+)['"]\s*:.*?(\w+)FromJSON\(json\[/g)
     for (const rm of refMatches) {
-      if (!rm[2].includes('Array')) {
+      if (rm[1] && rm[2] && !rm[2].includes('Array')) {
         refTypeMap.set(rm[1], rm[2])
       }
     }
@@ -262,8 +275,10 @@ function parseModelFile(filePath: string, fileName: string): ParsedModelSchema |
     // 배열 참조 타입 감지: .map(SomeTypeFromJSON)
     const arrayRefMatches = returnBody.matchAll(/['"](\w+)['"]\s*:.*?\.map\((\w+)FromJSON\)/g)
     for (const arm of arrayRefMatches) {
-      refTypeMap.set(arm[1], arm[2])
-      arrayFields.add(arm[1])
+      if (arm[1] && arm[2]) {
+        refTypeMap.set(arm[1], arm[2])
+        arrayFields.add(arm[1])
+      }
     }
 
     // 기존 필드 정보 업데이트
@@ -284,7 +299,7 @@ function parseModelFile(filePath: string, fileName: string): ParsedModelSchema |
 
   // 전략 3: Interface 직접 파싱으로 타입 정보 보완
   const interfaceMatch = content.match(/export\s+interface\s+(\w+)(?:\s+extends\s+[\w,\s]+)?\s*\{([\s\S]*?)\n\}/)
-  if (interfaceMatch) {
+  if (interfaceMatch?.[2]) {
     const interfaceBody = interfaceMatch[2]
 
     // 간단한 필드 파싱: fieldName?: Type;
@@ -292,8 +307,11 @@ function parseModelFile(filePath: string, fileName: string): ParsedModelSchema |
     let sfm
     while ((sfm = simpleFieldRegex.exec(interfaceBody)) !== null) {
       const name = sfm[1]
+      const rawTypeStr = sfm[3]
+      if (!name || !rawTypeStr) continue
+
       const optional = sfm[2] === '?'
-      const rawType = sfm[3].trim()
+      const rawType = rawTypeStr.trim()
 
       const { type, isArray, refType } = analyzeType(rawType)
 

@@ -94,7 +94,7 @@ export class OpenAPIItemProvider implements ItemProvider<Record<string, unknown>
    */
   generateItem(index: number, seed: string): Record<string, unknown> {
     const numericSeed = hashString(`${seed}-${index}`)
-    const item = generateMockFromSchema(this.schema, numericSeed) as Record<string, unknown>
+    const item = generateMockFromSchema(this.schema as unknown as Record<string, unknown>, numericSeed) as Record<string, unknown>
     return item
   }
 

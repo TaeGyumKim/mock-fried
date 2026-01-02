@@ -54,7 +54,7 @@ export default defineNuxtPlugin(() => {
     }
 
     const response = await $fetch<T>(finalUrl, fetchOptions as Parameters<typeof $fetch>[1])
-    return response
+    return response as T
   }
 
   /**
