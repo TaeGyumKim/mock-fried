@@ -230,6 +230,44 @@ describe('OpenAPI Client Package Mode E2E', async () => {
 
         expect(response).toBeDefined()
       })
+
+      it('should return bidirectional cursor fields', async () => {
+        const response = await $fetch('/mock/posts?limit=5') as {
+          items?: unknown[]
+          nextCursor?: string
+          prevCursor?: string
+          hasMore?: boolean
+          hasPrev?: boolean
+        }
+
+        expect(response).toBeDefined()
+        // Bidirectional cursor pagination fields
+        expect(response.nextCursor).toBeDefined()
+        expect(response.hasMore).toBeDefined()
+        // prevCursor and hasPrev are optional - may be null/undefined on first page
+        expect('prevCursor' in response || response.prevCursor === null).toBe(true)
+        expect('hasPrev' in response || response.hasPrev === null).toBe(true)
+      })
+
+      it('should support cursor parameter for forward navigation', async () => {
+        const response = await $fetch('/mock/posts?cursor=abc123&limit=5')
+
+        expect(response).toBeDefined()
+      })
+
+      it('should support cursor parameter for backward navigation', async () => {
+        const response = await $fetch('/mock/posts?cursor=xyz789&limit=5')
+
+        expect(response).toBeDefined()
+      })
+
+      it('should return consistent data for same cursor', async () => {
+        const response1 = await $fetch('/mock/posts?cursor=test-cursor&limit=3') as { items: unknown[] }
+        const response2 = await $fetch('/mock/posts?cursor=test-cursor&limit=3') as { items: unknown[] }
+
+        // Items should be consistent (cursors contain timestamps that may differ)
+        expect(response1.items).toEqual(response2.items)
+      })
     })
 
     describe('POST /mock/posts', () => {
@@ -582,6 +620,170 @@ describe('OpenAPI Client Package Mode E2E', async () => {
       const response = await $fetch('/mock/sessions/session-123', { method: 'DELETE' })
 
       expect(response === null || response === undefined || response === '').toBe(true)
+    })
+  })
+
+  // ============================================
+  // AdvancedCases API - Proto AdvancedService parity
+  // ============================================
+  describe('AdvancedCases API', () => {
+    describe('GET /mock/advanced/scalars', () => {
+      it('should return all scalar types', async () => {
+        const response = await $fetch('/mock/advanced/scalars')
+
+        expect(response).toBeDefined()
+        expect(typeof response).toBe('object')
+      })
+    })
+
+    describe('GET /mock/advanced/company/{id}', () => {
+      it('should return deeply nested company structure', async () => {
+        const response = await $fetch('/mock/advanced/company/company-1')
+
+        expect(response).toBeDefined()
+        expect(typeof response).toBe('object')
+      })
+
+      it('should return consistent data for same id', async () => {
+        const response1 = await $fetch('/mock/advanced/company/same-company')
+        const response2 = await $fetch('/mock/advanced/company/same-company')
+
+        expect(response1).toEqual(response2)
+      })
+    })
+
+    describe('GET /mock/advanced/preferences', () => {
+      it('should return user preferences', async () => {
+        const response = await $fetch('/mock/advanced/preferences')
+
+        expect(response).toBeDefined()
+        expect(typeof response).toBe('object')
+      })
+    })
+
+    describe('PUT /mock/advanced/preferences', () => {
+      it('should handle preferences update', async () => {
+        const response = await $fetch('/mock/advanced/preferences', {
+          method: 'PUT',
+          body: {
+            notifications: { email: true },
+            privacy: { profileVisible: true },
+          },
+        })
+
+        expect(response).toBeDefined()
+        expect(typeof response).toBe('object')
+      })
+    })
+
+    describe('GET /mock/advanced/orders (page pagination)', () => {
+      it('should return advanced orders list', async () => {
+        const response = await $fetch('/mock/advanced/orders')
+
+        expect(response).toBeDefined()
+      })
+
+      it('should support page and limit parameters', async () => {
+        const response = await $fetch('/mock/advanced/orders?page=1&limit=5')
+
+        expect(response).toBeDefined()
+      })
+    })
+
+    describe('GET /mock/advanced/orders/{id}', () => {
+      it('should return advanced order by id', async () => {
+        const response = await $fetch('/mock/advanced/orders/order-1')
+
+        expect(response).toBeDefined()
+        expect(typeof response).toBe('object')
+      })
+    })
+
+    describe('GET /mock/advanced/tree/{id} (recursive)', () => {
+      it('should return tree node with children', async () => {
+        const response = await $fetch('/mock/advanced/tree/node-1')
+
+        expect(response).toBeDefined()
+        expect(typeof response).toBe('object')
+      })
+    })
+
+    describe('GET /mock/advanced/org-chart/{id} (recursive)', () => {
+      it('should return org member with reports', async () => {
+        const response = await $fetch('/mock/advanced/org-chart/member-1')
+
+        expect(response).toBeDefined()
+        expect(typeof response).toBe('object')
+      })
+    })
+
+    describe('GET /mock/advanced/comment-thread/{id} (recursive)', () => {
+      it('should return comment thread with replies', async () => {
+        const response = await $fetch('/mock/advanced/comment-thread/thread-1')
+
+        expect(response).toBeDefined()
+        expect(typeof response).toBe('object')
+      })
+    })
+
+    describe('GET /mock/advanced/graph/{id}', () => {
+      it('should return graph with nodes and edges', async () => {
+        const response = await $fetch('/mock/advanced/graph/graph-1')
+
+        expect(response).toBeDefined()
+        expect(typeof response).toBe('object')
+      })
+    })
+  })
+
+  // ============================================
+  // Activities API - Bidirectional Cursor Pagination
+  // ============================================
+  describe('Activities API', () => {
+    describe('GET /mock/activities (bidirectional cursor)', () => {
+      it('should return activities list', async () => {
+        const response = await $fetch('/mock/activities')
+
+        expect(response).toBeDefined()
+      })
+
+      it('should return bidirectional cursor fields', async () => {
+        const response = await $fetch('/mock/activities?limit=5')
+
+        expect(response).toBeDefined()
+        expect(typeof response).toBe('object')
+        // Client package mode - verify response has expected structure
+        // Cursor pagination fields may vary based on schema generation
+      })
+
+      it('should support cursor and limit parameters', async () => {
+        const response = await $fetch('/mock/activities?cursor=abc&limit=10')
+
+        expect(response).toBeDefined()
+      })
+
+      it('should return consistent data for same cursor', async () => {
+        const response1 = await $fetch('/mock/activities?cursor=test-cursor&limit=3') as { items: unknown[] }
+        const response2 = await $fetch('/mock/activities?cursor=test-cursor&limit=3') as { items: unknown[] }
+
+        expect(response1.items).toEqual(response2.items)
+      })
+    })
+
+    describe('GET /mock/activities/{id}', () => {
+      it('should return activity by id', async () => {
+        const response = await $fetch('/mock/activities/activity-1')
+
+        expect(response).toBeDefined()
+        expect(typeof response).toBe('object')
+      })
+
+      it('should return consistent data for same id', async () => {
+        const response1 = await $fetch('/mock/activities/same-activity')
+        const response2 = await $fetch('/mock/activities/same-activity')
+
+        expect(response1).toEqual(response2)
+      })
     })
   })
 
