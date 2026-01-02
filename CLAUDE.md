@@ -127,10 +127,14 @@ lint → type-check
               ↘ playground (빌드 검증)
 ```
 
-**Publish Pipeline** (`.github/workflows/publish.yml`):
+**Release Please** (`.github/workflows/release-please.yml`):
 
 ```text
-lint → build → test (unit + e2e) → npm publish
+main push → Release Please Action
+              ↓
+         Release PR 자동 생성/업데이트
+              ↓
+         PR 머지 시 → npm publish (provenance)
 ```
 
 **CodeQL Security Scan** (`.github/workflows/codeql.yml`):
@@ -143,6 +147,79 @@ lint → build → test (unit + e2e) → npm publish
 
 ```text
 주간 의존성 업데이트 (npm + GitHub Actions)
+```
+
+### Release Please 워크플로우 상세
+
+이 프로젝트는 **Release Please**를 사용하여 자동화된 릴리즈 관리를 합니다.
+
+#### 동작 방식
+
+1. **커밋 푸시**: main 브랜치에 Conventional Commits 형식으로 커밋
+2. **PR 자동 생성**: Release Please가 릴리즈 PR 자동 생성 (`release-please--branches--main`)
+3. **버전 결정**: 커밋 메시지 분석하여 버전 자동 결정
+   - `fix:` → patch (1.0.0 → 1.0.1)
+   - `feat:` → minor (1.0.0 → 1.1.0)
+   - `feat!:` 또는 `BREAKING CHANGE:` → major (1.0.0 → 2.0.0)
+4. **PR 머지**: 릴리즈 PR 머지 시 자동으로:
+   - GitHub Release 생성
+   - npm publish 실행
+   - CHANGELOG.md 업데이트
+
+#### 주요 장점
+
+| 항목 | 설명 |
+|------|------|
+| **자동화** | PR 머지만 하면 릴리즈 완료 |
+| **버전 관리** | Conventional Commits 기반 자동 버전 결정 |
+| **CHANGELOG** | 자동 생성 및 업데이트 |
+| **롤백** | git revert + 새 릴리즈로 간단히 롤백 |
+| **Provenance** | npm provenance 서명으로 보안 강화 |
+
+#### 관련 파일
+
+| 파일 | 역할 |
+|------|------|
+| `.github/workflows/release-please.yml` | Release Please 워크플로우 |
+| `release-please-config.json` | 릴리즈 설정 (타입, 컴포넌트) |
+| `.release-please-manifest.json` | 현재 버전 추적 |
+| `CHANGELOG.md` | 자동 생성된 변경 이력 |
+
+#### GitHub Repository 설정 필수
+
+1. **Settings → Actions → General**:
+   - "Allow GitHub Actions to create and approve pull requests" 활성화
+
+2. **Settings → Secrets and variables → Actions**:
+   - `NPM_TOKEN`: npm access token (publish 권한 필요)
+
+### 버전 관리 및 롤백
+
+#### npm 버전 롤백
+
+문제 발생 시 이전 버전으로 롤백하는 방법:
+
+```bash
+# 1. 문제 커밋 revert
+git revert <commit-hash>
+git push origin main
+
+# 2. Release Please가 새 patch 버전 PR 생성
+# 3. PR 머지하면 새 버전이 npm에 게시됨
+
+# (긴급) npm unpublish (72시간 이내)
+npm unpublish mock-fried@1.0.5
+```
+
+#### 특정 버전 설치 (사용자 측)
+
+```bash
+# 특정 버전 고정
+npm install mock-fried@1.0.4
+
+# package.json에서 버전 고정
+"mock-fried": "1.0.4"  # exact version
+"mock-fried": "~1.0.4" # patch updates only
 ```
 
 ### Workspaces 구성
@@ -248,6 +325,16 @@ lint → build → test (unit + e2e) → npm publish
 **문제**: `createRequire(import.meta.url)` 번들 환경에서 실패
 **해결**: lazy initialization + `process.cwd()` fallback
 
+### v1.1.0 - Proto RPC 타입 처리 개선
+
+**문제**: proto-loader가 타입/레이블을 문자열로 반환하여 Mock 생성 실패
+**해결**: PROTO_TYPE_MAP에 문자열 키 추가, isRepeated 문자열 레이블 체크
+
+### v1.1.1 - 재귀 타입 페이지네이션 오탐 수정
+
+**문제**: TreeNode.children 같은 재귀 타입이 페이지네이션으로 오인됨
+**해결**: 메타 필드(page/cursor) 없으면 페이지네이션 감지 스킵
+
 ## 코드 스타일
 
 - ESLint + Prettier 사용
@@ -292,18 +379,28 @@ yarn test:watch                 # watch 모드
 
 ## 배포
 
-### npm 게시 (GitHub Release)
+### npm 게시 (Release Please - 권장)
 
-1. GitHub에서 Release 생성
-2. Publish 워크플로우 자동 실행
-3. npm에 자동 게시
+1. main 브랜치에 Conventional Commits 형식으로 커밋
+2. Release Please가 자동으로 릴리즈 PR 생성
+3. PR 리뷰 후 머지
+4. 자동으로 GitHub Release 생성 + npm publish
 
-### 로컬 배포 (수동)
+```bash
+# 커밋 예시
+git commit -m "fix: proto-loader string type handling"  # patch
+git commit -m "feat: add new pagination mode"           # minor
+git commit -m "feat!: breaking API change"              # major
+```
+
+### 로컬 배포 (긴급 시에만)
 
 ```bash
 yarn prepack                 # 빌드
 npm publish --access public  # npm 게시
 ```
+
+**주의**: 로컬 배포 시 Release Please와 버전 충돌 가능. 가급적 Release Please 사용 권장.
 
 ## 주의사항
 
