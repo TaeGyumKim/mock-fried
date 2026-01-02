@@ -113,6 +113,8 @@ export interface CursorPaginationResult<T> {
   prevCursor?: string
   /** 더 많은 데이터 존재 여부 */
   hasMore: boolean
+  /** 이전 페이지 존재 여부 */
+  hasPrev?: boolean
   /** 스냅샷 ID (클라이언트 전달용) */
   _snapshotId?: string
 }

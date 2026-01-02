@@ -246,6 +246,7 @@ export class CursorPaginationManager<T = Record<string, unknown>> {
     const result: CursorPaginationResult<T> = {
       items,
       hasMore,
+      hasPrev,
     }
 
     if (hasMore && pageItemIds.length > 0) {
@@ -366,6 +367,7 @@ export class CursorPaginationManager<T = Record<string, unknown>> {
     const result: CursorPaginationResult<P> = {
       items,
       hasMore,
+      hasPrev,
     }
 
     if (hasMore && pageItemIds.length > 0) {

@@ -496,12 +496,21 @@ export default defineEventHandler(async (event) => {
   // 응답 타입 정보 추출
   const responseTypeInfo = getResponseTypeInfo(methodDef, cache.packageDefinition)
 
-  // seed 생성 (결정론적)
-  const seedNum = deriveSeedFromRequest(requestBody)
-  const seed = String(seedNum)
-
-  // Pagination 응답 분석
+  // Pagination 응답 분석 (seed 계산 전에 먼저 분석)
   const paginationInfo = analyzeProtoPagination(responseTypeInfo)
+
+  // seed 생성 (결정론적)
+  // Pagination 파라미터는 seed에서 제외하여 페이지 간 데이터 일관성 보장
+  const paginationParams = ['page', 'limit', 'page_size', 'cursor', 'offset', 'size', 'page_number']
+  const seedBody = Object.fromEntries(
+    Object.entries(requestBody).filter(([key]) => !paginationParams.includes(key.toLowerCase())),
+  )
+  // modelName 기반 seed 생성 (OpenAPI와 동일한 방식)
+  const baseSeed = `${serviceName}.${methodName}`
+  const seedNum = Object.keys(seedBody).length > 0
+    ? deriveSeedFromRequest(seedBody)
+    : deriveSeedFromRequest(baseSeed)
+  const seed = `${baseSeed}-${seedNum}`
 
   let mockResponse: unknown
 
@@ -543,16 +552,19 @@ export default defineEventHandler(async (event) => {
       for (const metaField of paginationInfo.metaFields) {
         const lowerField = metaField.toLowerCase()
         if (lowerField.includes('next') && lowerField.includes('cursor')) {
-          responseData[metaField] = result.nextCursor
+          responseData[metaField] = result.nextCursor ?? ''
         }
         else if (lowerField.includes('prev') && lowerField.includes('cursor')) {
-          responseData[metaField] = result.prevCursor
+          responseData[metaField] = result.prevCursor ?? ''
         }
         else if (lowerField.includes('has_more') || lowerField.includes('hasmore')) {
           responseData[metaField] = result.hasMore
         }
+        else if (lowerField.includes('has_prev') || lowerField.includes('hasprev')) {
+          responseData[metaField] = result.hasPrev ?? false
+        }
         else if (lowerField === 'cursor') {
-          responseData[metaField] = result.nextCursor
+          responseData[metaField] = result.nextCursor ?? ''
         }
         else if (lowerField === 'total' || lowerField === 'total_items') {
           responseData[metaField] = total

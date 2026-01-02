@@ -177,19 +177,22 @@ async function getOpenAPIBackend(specPath: string): Promise<any> {
 
             // Pagination 메타 필드 추가
             if (paginationInfo.metaFields.includes('nextCursor')) {
-              responseData.nextCursor = result.nextCursor
+              responseData.nextCursor = result.nextCursor ?? null
             }
             if (paginationInfo.metaFields.includes('prevCursor')) {
-              responseData.prevCursor = result.prevCursor
+              responseData.prevCursor = result.prevCursor ?? null
             }
             if (paginationInfo.metaFields.includes('hasMore')) {
               responseData.hasMore = result.hasMore
+            }
+            if (paginationInfo.metaFields.includes('hasPrev')) {
+              responseData.hasPrev = result.hasPrev ?? false
             }
             if (paginationInfo.metaFields.includes('total')) {
               responseData.total = total
             }
             if (paginationInfo.metaFields.includes('cursor')) {
-              responseData.cursor = result.nextCursor
+              responseData.cursor = result.nextCursor ?? null
             }
 
             mockData = responseData
@@ -531,13 +534,16 @@ function handleClientPackageRequest(
               if (field.name !== listFieldName) {
                 const outputKey = field.jsonKey || field.name
                 if (field.name === 'nextCursor' || field.name === 'cursor') {
-                  otherFields[outputKey] = result.nextCursor
+                  otherFields[outputKey] = result.nextCursor ?? null
                 }
                 else if (field.name === 'prevCursor') {
-                  otherFields[outputKey] = result.prevCursor
+                  otherFields[outputKey] = result.prevCursor ?? null
                 }
                 else if (field.name === 'hasMore') {
                   otherFields[outputKey] = result.hasMore
+                }
+                else if (field.name === 'hasPrev') {
+                  otherFields[outputKey] = result.hasPrev ?? false
                 }
                 else if (field.name === 'total' || field.name === 'totalItems') {
                   otherFields[outputKey] = 100
@@ -574,13 +580,16 @@ function handleClientPackageRequest(
               if (field.name !== listFieldName) {
                 const outputKey = field.jsonKey || field.name
                 if (field.name === 'nextCursor' || field.name === 'cursor') {
-                  otherFields[outputKey] = result.nextCursor
+                  otherFields[outputKey] = result.nextCursor ?? null
                 }
                 else if (field.name === 'prevCursor') {
-                  otherFields[outputKey] = result.prevCursor
+                  otherFields[outputKey] = result.prevCursor ?? null
                 }
                 else if (field.name === 'hasMore') {
                   otherFields[outputKey] = result.hasMore
+                }
+                else if (field.name === 'hasPrev') {
+                  otherFields[outputKey] = result.hasPrev ?? false
                 }
                 else if (field.name === 'total' || field.name === 'totalItems') {
                   otherFields[outputKey] = 100
