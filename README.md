@@ -346,8 +346,11 @@ yarn lint:fix
 yarn format
 
 # Run tests
-yarn test
-yarn test:watch
+yarn test              # All tests
+yarn test:unit         # Unit tests only
+yarn test:e2e          # E2E tests only
+yarn test:coverage     # With coverage report
+yarn test:watch        # Watch mode
 
 # Type check
 yarn test:types

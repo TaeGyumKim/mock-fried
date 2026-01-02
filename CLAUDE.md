@@ -106,7 +106,10 @@ yarn dev:openapi-client     # Client Package Mode playground 실행
 yarn dev:proto              # Proto playground 실행
 yarn lint                   # ESLint 검사
 yarn lint:fix               # ESLint 자동 수정
-yarn test                   # 테스트 실행
+yarn test                   # 전체 테스트 실행
+yarn test:unit              # 단위 테스트만
+yarn test:e2e               # E2E 테스트만
+yarn test:coverage          # 커버리지 리포트 생성
 yarn test:watch             # 테스트 watch 모드
 yarn prepack                # 빌드
 ```
@@ -118,14 +121,28 @@ yarn prepack                # 빌드
 **CI Pipeline** (`.github/workflows/ci.yml`):
 
 ```text
-lint → build → test
+lint → type-check
+     ↘ build → test (unit)
+              ↘ e2e-test (matrix: openapi, openapi-client, proto, proto-advanced)
               ↘ playground (빌드 검증)
 ```
 
 **Publish Pipeline** (`.github/workflows/publish.yml`):
 
 ```text
-lint → build → test → npm publish
+lint → build → test (unit + e2e) → npm publish
+```
+
+**CodeQL Security Scan** (`.github/workflows/codeql.yml`):
+
+```text
+주간 보안 취약점 스캔 (JavaScript/TypeScript)
+```
+
+**Dependabot** (`.github/dependabot.yml`):
+
+```text
+주간 의존성 업데이트 (npm + GitHub Actions)
 ```
 
 ### Workspaces 구성
@@ -139,11 +156,23 @@ lint → build → test → npm publish
 |--------|------|------|
 | `@mock-fried/sample-openapi` | Spec File Mode 테스트 | openapi.yaml (7 API 그룹, 43개 엔드포인트) |
 | `@mock-fried/openapi-client` | Client Package Mode 테스트 | openapi-generator 출력 (동일 스펙 기반) |
-| `@mock-fried/sample-proto` | Proto RPC 테스트용 | UserService, ProductService (example.proto) |
+| `@mock-fried/sample-proto` | Proto RPC 테스트용 | example.proto (7 서비스, 37 메서드) |
 
 **Mock 모드 설명**:
 - **Spec File Mode**: OpenAPI YAML/JSON 파일에서 직접 Mock 엔드포인트 생성
 - **Client Package Mode**: openapi-generator 출력 패키지를 파싱하여 Mock 엔드포인트 생성
+
+### Proto RPC 서비스 구성 (sample-proto)
+
+| 서비스 | 메서드 수 | 주요 기능 |
+| ------ | -------- | -------- |
+| UserService | 5 | CRUD, 페이지네이션, 검색 |
+| ProductService | 4 | CRUD, 페이지네이션, 검색 |
+| OrderService | 4 | CRUD, 중첩 메시지 |
+| PostService | 3 | 커서 기반 페이지네이션 |
+| CommentService | 2 | 중첩 리소스 패턴 |
+| HealthService | 3 | 헬스체크, 버전, ping |
+| AdvancedService | 16 | 심화 타입 (재귀, Map, Enum 등) |
 
 ### OpenAPI 스펙 구성 (sample-openapi, openapi-client 동일)
 
@@ -243,11 +272,12 @@ yarn test:watch                 # watch 모드
 
 | 테스트 파일 | 테스트 수 | 커버리지 |
 |------------|----------|---------|
-| `playground-openapi.e2e.test.ts` | 51 | Spec File Mode 100% (43 endpoints) |
-| `playground-openapi-client.e2e.test.ts` | 51 | Client Package Mode 100% (43 endpoints) |
-| `playground-proto.e2e.test.ts` | 14 | Proto RPC 100% (5 endpoints) |
-| Unit tests | 31 | Core utilities |
-| **Total** | **147** | |
+| `playground-openapi.e2e.test.ts` | 52 | Spec File Mode 100% (43 endpoints + 페이지 로딩) |
+| `playground-openapi-client.e2e.test.ts` | 54 | Client Package Mode 100% (43 endpoints + 페이지 로딩) |
+| `playground-proto.e2e.test.ts` | 60 | Proto RPC 100% (7 서비스 + 페이지 로딩) |
+| `playground-proto-advanced.e2e.test.ts` | 37 | AdvancedService 심화 테스트 |
+| Unit tests | 61 | Core utilities |
+| **Total** | **264** | |
 
 ### E2E 테스트 구성
 
