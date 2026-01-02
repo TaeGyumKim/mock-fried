@@ -803,4 +803,406 @@ describe('Proto RPC Mode E2E', async () => {
       expect(response.success).toBe(true)
     })
   })
+
+  // ============================================
+  // EdgeCaseService RPCs (OpenAPI EdgeCases 대응)
+  // ============================================
+  describe('EdgeCaseService', () => {
+    describe('Primitive Responses', () => {
+      it('should handle POST /mock/rpc/EdgeCaseService/GetTotalCount', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/GetTotalCount', {
+          method: 'POST',
+          body: {},
+        })
+
+        expect(response).toBeDefined()
+        expect(response.success).toBe(true)
+        expect(response.service).toBe('EdgeCaseService')
+        expect(response.method).toBe('GetTotalCount')
+      })
+
+      it('should return Int64Value with value field', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/GetTotalCount', {
+          method: 'POST',
+          body: {},
+        })
+
+        expect(response.data).toBeDefined()
+        expect(response.data.value).toBeDefined()
+      })
+
+      it('should handle POST /mock/rpc/EdgeCaseService/GetSystemStatus', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/GetSystemStatus', {
+          method: 'POST',
+          body: {},
+        })
+
+        expect(response).toBeDefined()
+        expect(response.success).toBe(true)
+      })
+
+      it('should return SystemStatusResponse with status and message', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/GetSystemStatus', {
+          method: 'POST',
+          body: {},
+        })
+
+        expect(response.data).toBeDefined()
+        expect(response.data.status).toBeDefined()
+        expect(response.data.message).toBeDefined()
+      })
+
+      it('should handle POST /mock/rpc/EdgeCaseService/IsFeatureEnabled', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/IsFeatureEnabled', {
+          method: 'POST',
+          body: { feature_name: 'dark_mode' },
+        })
+
+        expect(response).toBeDefined()
+        expect(response.success).toBe(true)
+      })
+
+      it('should return BoolValue with value field', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/IsFeatureEnabled', {
+          method: 'POST',
+          body: { feature_name: 'dark_mode' },
+        })
+
+        expect(response.data).toBeDefined()
+        expect(typeof response.data.value).toBe('boolean')
+      })
+    })
+
+    describe('Direct Array Responses', () => {
+      it('should handle POST /mock/rpc/EdgeCaseService/GetTags', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/GetTags', {
+          method: 'POST',
+          body: {},
+        })
+
+        expect(response).toBeDefined()
+        expect(response.success).toBe(true)
+      })
+
+      it('should return StringList with items array', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/GetTags', {
+          method: 'POST',
+          body: {},
+        })
+
+        expect(response.data).toBeDefined()
+        expect(response.data.items).toBeDefined()
+        expect(Array.isArray(response.data.items)).toBe(true)
+      })
+
+      it('should handle POST /mock/rpc/EdgeCaseService/GetFeaturedProducts', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/GetFeaturedProducts', {
+          method: 'POST',
+          body: {},
+        })
+
+        expect(response).toBeDefined()
+        expect(response.success).toBe(true)
+      })
+
+      it('should return ProductList with products array', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/GetFeaturedProducts', {
+          method: 'POST',
+          body: {},
+        })
+
+        expect(response.data).toBeDefined()
+        expect(response.data.products).toBeDefined()
+        expect(Array.isArray(response.data.products)).toBe(true)
+      })
+
+      it('should handle POST /mock/rpc/EdgeCaseService/GetSearchSuggestions', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/GetSearchSuggestions', {
+          method: 'POST',
+          body: { query: 'laptop', limit: 10 },
+        })
+
+        expect(response).toBeDefined()
+        expect(response.success).toBe(true)
+      })
+
+      it('should return StringList for search suggestions', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/GetSearchSuggestions', {
+          method: 'POST',
+          body: { query: 'phone', limit: 5 },
+        })
+
+        expect(response.data).toBeDefined()
+        expect(response.data.items).toBeDefined()
+        expect(Array.isArray(response.data.items)).toBe(true)
+      })
+    })
+
+    describe('allOf Composition', () => {
+      it('should handle POST /mock/rpc/EdgeCaseService/GetAdminUser', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/GetAdminUser', {
+          method: 'POST',
+          body: { id: 1 },
+        })
+
+        expect(response).toBeDefined()
+        expect(response.success).toBe(true)
+      })
+
+      it('should return AdminUser with User fields and admin-specific fields', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/GetAdminUser', {
+          method: 'POST',
+          body: { id: 1 },
+        })
+
+        expect(response.data).toBeDefined()
+        // User fields
+        expect(response.data.id).toBeDefined()
+        expect(response.data.name).toBeDefined()
+        expect(response.data.email).toBeDefined()
+        // Admin-specific fields
+        expect(response.data.permissions).toBeDefined()
+        expect(response.data.is_super_admin).toBeDefined()
+      })
+    })
+
+    describe('Deeply Nested', () => {
+      it('should handle POST /mock/rpc/EdgeCaseService/GetReport', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/GetReport', {
+          method: 'POST',
+          body: { id: 'report-1' },
+        })
+
+        expect(response).toBeDefined()
+        expect(response.success).toBe(true)
+      })
+
+      it('should return Report with nested structure', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/GetReport', {
+          method: 'POST',
+          body: { id: 'report-1' },
+        })
+
+        expect(response.data).toBeDefined()
+        expect(response.data.id).toBeDefined()
+        expect(response.data.title).toBeDefined()
+        expect(response.data.metadata).toBeDefined()
+        expect(response.data.sections).toBeDefined()
+      })
+    })
+
+    describe('Metrics', () => {
+      it('should handle POST /mock/rpc/EdgeCaseService/GetMetrics', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/GetMetrics', {
+          method: 'POST',
+          body: {},
+        })
+
+        expect(response).toBeDefined()
+        expect(response.success).toBe(true)
+      })
+
+      it('should return Metrics with various numeric types', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/GetMetrics', {
+          method: 'POST',
+          body: {},
+        })
+
+        expect(response.data).toBeDefined()
+        expect(response.data.total_users).toBeDefined()
+        expect(response.data.total_requests).toBeDefined()
+        expect(response.data.cpu_usage).toBeDefined()
+        expect(response.data.memory_usage).toBeDefined()
+      })
+    })
+
+    describe('Settings', () => {
+      it('should handle POST /mock/rpc/EdgeCaseService/GetSettings', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/GetSettings', {
+          method: 'POST',
+          body: {},
+        })
+
+        expect(response).toBeDefined()
+        expect(response.success).toBe(true)
+      })
+
+      it('should return Settings with all fields', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/GetSettings', {
+          method: 'POST',
+          body: {},
+        })
+
+        expect(response.data).toBeDefined()
+        expect(response.data.display_name).toBeDefined()
+        expect(response.data.volume).toBeDefined()
+        expect(response.data.brightness).toBeDefined()
+        expect(response.data.theme).toBeDefined()
+        expect(response.data.language).toBeDefined()
+      })
+
+      it('should handle POST /mock/rpc/EdgeCaseService/UpdateSettings', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/UpdateSettings', {
+          method: 'POST',
+          body: {
+            display_name: 'Updated Name',
+            volume: 80,
+            notifications_enabled: true,
+          },
+        })
+
+        expect(response).toBeDefined()
+        expect(response.success).toBe(true)
+      })
+    })
+
+    describe('Empty Responses', () => {
+      it('should handle POST /mock/rpc/EdgeCaseService/ClearCache', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/ClearCache', {
+          method: 'POST',
+          body: {},
+        })
+
+        expect(response).toBeDefined()
+        expect(response.success).toBe(true)
+      })
+
+      it('should return empty response for ClearCache', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/ClearCache', {
+          method: 'POST',
+          body: {},
+        })
+
+        expect(response.data).toBeDefined()
+        // Empty message should return empty object
+        expect(typeof response.data).toBe('object')
+      })
+
+      it('should handle POST /mock/rpc/EdgeCaseService/DeleteSession', async () => {
+        const response = await $fetch('/mock/rpc/EdgeCaseService/DeleteSession', {
+          method: 'POST',
+          body: { id: 'session-123' },
+        })
+
+        expect(response).toBeDefined()
+        expect(response.success).toBe(true)
+      })
+    })
+  })
+
+  // ============================================
+  // ActivityService RPCs (양방향 Cursor Pagination)
+  // ============================================
+  describe('ActivityService', () => {
+    describe('GetActivity', () => {
+      it('should handle POST /mock/rpc/ActivityService/GetActivity', async () => {
+        const response = await $fetch('/mock/rpc/ActivityService/GetActivity', {
+          method: 'POST',
+          body: { id: 'activity-1' },
+        })
+
+        expect(response).toBeDefined()
+        expect(response.success).toBe(true)
+        expect(response.service).toBe('ActivityService')
+        expect(response.method).toBe('GetActivity')
+      })
+
+      it('should return Activity with required fields', async () => {
+        const response = await $fetch('/mock/rpc/ActivityService/GetActivity', {
+          method: 'POST',
+          body: { id: 'activity-1' },
+        })
+
+        expect(response.data).toBeDefined()
+        expect(response.data.id).toBeDefined()
+        expect(response.data.user_id).toBeDefined()
+        expect(response.data.type).toBeDefined()
+        expect(response.data.description).toBeDefined()
+      })
+
+      it('should return consistent data for same id', async () => {
+        const response1 = await $fetch('/mock/rpc/ActivityService/GetActivity', {
+          method: 'POST',
+          body: { id: 'activity-abc' },
+        })
+        const response2 = await $fetch('/mock/rpc/ActivityService/GetActivity', {
+          method: 'POST',
+          body: { id: 'activity-abc' },
+        })
+
+        expect(response1).toEqual(response2)
+      })
+    })
+
+    describe('ListActivities (Bidirectional Cursor Pagination)', () => {
+      it('should handle POST /mock/rpc/ActivityService/ListActivities', async () => {
+        const response = await $fetch('/mock/rpc/ActivityService/ListActivities', {
+          method: 'POST',
+          body: { limit: 10 },
+        })
+
+        expect(response).toBeDefined()
+        expect(response.success).toBe(true)
+        expect(response.service).toBe('ActivityService')
+        expect(response.method).toBe('ListActivities')
+      })
+
+      it('should return ListActivitiesResponse with bidirectional cursor fields', async () => {
+        const response = await $fetch('/mock/rpc/ActivityService/ListActivities', {
+          method: 'POST',
+          body: { limit: 5 },
+        })
+
+        expect(response.data).toBeDefined()
+        // Bidirectional cursor pagination fields
+        expect(response.data.next_cursor).toBeDefined()
+        expect(response.data.prev_cursor).toBeDefined()
+        expect(response.data.has_more).toBeDefined()
+        expect(response.data.has_prev).toBeDefined()
+        expect(response.data.total).toBeDefined()
+      })
+
+      it('should return activities array', async () => {
+        const response = await $fetch('/mock/rpc/ActivityService/ListActivities', {
+          method: 'POST',
+          body: { limit: 5 },
+        })
+
+        expect(response.data).toBeDefined()
+        expect(response.data.activities).toBeDefined()
+        expect(Array.isArray(response.data.activities)).toBe(true)
+      })
+
+      it('should support forward cursor navigation', async () => {
+        const response = await $fetch('/mock/rpc/ActivityService/ListActivities', {
+          method: 'POST',
+          body: { cursor: 'abc123', limit: 10, direction: 0 },
+        })
+
+        expect(response).toBeDefined()
+        expect(response.success).toBe(true)
+      })
+
+      it('should support backward cursor navigation', async () => {
+        const response = await $fetch('/mock/rpc/ActivityService/ListActivities', {
+          method: 'POST',
+          body: { cursor: 'xyz789', limit: 10, direction: 1 },
+        })
+
+        expect(response).toBeDefined()
+        expect(response.success).toBe(true)
+      })
+
+      it('should filter by user_id', async () => {
+        const response = await $fetch('/mock/rpc/ActivityService/ListActivities', {
+          method: 'POST',
+          body: { user_id: 'user-123', limit: 5 },
+        })
+
+        expect(response).toBeDefined()
+        expect(response.success).toBe(true)
+        expect(response.data.activities).toBeDefined()
+      })
+    })
+  })
 })

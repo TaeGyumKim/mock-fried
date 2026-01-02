@@ -149,7 +149,14 @@ interface RpcMethod {
 // Service list
 const serviceList = [
   { name: 'UserService', description: 'User CRUD (GetUser, ListUsers, CreateUser, UpdateUser, DeleteUser)' },
-  { name: 'ProductService', description: 'Product Management (GetProduct, ListProducts, CreateProduct)' },
+  { name: 'ProductService', description: 'Product Management (GetProduct, ListProducts, CreateProduct, SearchProducts)' },
+  { name: 'OrderService', description: 'Order Management (GetOrder, ListOrders, CreateOrder, DeleteOrder)' },
+  { name: 'PostService', description: 'Blog Posts with Cursor Pagination (GetPost, ListPosts, CreatePost)' },
+  { name: 'CommentService', description: 'Post Comments (ListComments, CreateComment)' },
+  { name: 'HealthService', description: 'Health Check Endpoints (GetHealth, GetVersion, Ping)' },
+  { name: 'AdvancedService', description: 'Advanced Proto3 Features (Scalars, Oneof, Nested, Maps, Recursive)' },
+  { name: 'EdgeCaseService', description: 'OpenAPI EdgeCases (Primitives, Arrays, allOf, Settings, Empty)' },
+  { name: 'ActivityService', description: 'Bidirectional Cursor Pagination (ListActivities, GetActivity)' },
 ]
 
 // Methods by service
@@ -209,7 +216,7 @@ const methodsByService: Record<string, RpcMethod[]> = {
       name: 'GetProduct',
       type: 'Unary',
       params: [
-        { name: 'id', type: 'string', required: true, placeholder: '1' },
+        { name: 'id', type: 'number', required: true, placeholder: '1' },
       ],
     },
     {
@@ -218,8 +225,8 @@ const methodsByService: Record<string, RpcMethod[]> = {
       type: 'Unary',
       params: [
         { name: 'page', type: 'number', required: false, placeholder: '1' },
-        { name: 'limit', type: 'number', required: false, placeholder: '5' },
-        { name: 'category', type: 'number', required: false, placeholder: '1' },
+        { name: 'limit', type: 'number', required: false, placeholder: '10' },
+        { name: 'category', type: 'string', required: false, placeholder: 'electronics' },
       ],
     },
     {
@@ -232,6 +239,358 @@ const methodsByService: Record<string, RpcMethod[]> = {
         { name: 'price', type: 'number', required: true, placeholder: '99.99' },
         { name: 'stock', type: 'number', required: false, placeholder: '100' },
         { name: 'category', type: 'number', required: false, placeholder: '1' },
+      ],
+    },
+    {
+      id: 'searchProducts',
+      name: 'SearchProducts',
+      type: 'Unary',
+      params: [
+        { name: 'keyword', type: 'string', required: true, placeholder: 'laptop' },
+        { name: 'limit', type: 'number', required: false, placeholder: '10' },
+      ],
+    },
+  ],
+  OrderService: [
+    {
+      id: 'getOrder',
+      name: 'GetOrder',
+      type: 'Unary',
+      params: [
+        { name: 'id', type: 'string', required: true, placeholder: 'order-123' },
+      ],
+    },
+    {
+      id: 'listOrders',
+      name: 'ListOrders',
+      type: 'Unary',
+      params: [
+        { name: 'page', type: 'number', required: false, placeholder: '1' },
+        { name: 'limit', type: 'number', required: false, placeholder: '10' },
+        { name: 'status_filter', type: 'number', required: false, placeholder: '1' },
+        { name: 'user_id', type: 'string', required: false, placeholder: '' },
+      ],
+    },
+    {
+      id: 'createOrder',
+      name: 'CreateOrder',
+      type: 'Unary',
+      params: [
+        { name: 'shipping_address', type: 'string', required: true, placeholder: '123 Main St' },
+      ],
+    },
+    {
+      id: 'deleteOrder',
+      name: 'DeleteOrder',
+      type: 'Unary',
+      params: [
+        { name: 'id', type: 'string', required: true, placeholder: 'order-123' },
+      ],
+    },
+  ],
+  PostService: [
+    {
+      id: 'getPost',
+      name: 'GetPost',
+      type: 'Unary',
+      params: [
+        { name: 'id', type: 'string', required: true, placeholder: 'post-1' },
+      ],
+    },
+    {
+      id: 'listPosts',
+      name: 'ListPosts',
+      type: 'Unary',
+      params: [
+        { name: 'cursor', type: 'string', required: false, placeholder: '' },
+        { name: 'limit', type: 'number', required: false, placeholder: '10' },
+        { name: 'author_id', type: 'string', required: false, placeholder: '' },
+      ],
+    },
+    {
+      id: 'createPost',
+      name: 'CreatePost',
+      type: 'Unary',
+      params: [
+        { name: 'title', type: 'string', required: true, placeholder: 'My Post Title' },
+        { name: 'content', type: 'string', required: true, placeholder: 'Post content...' },
+      ],
+    },
+  ],
+  CommentService: [
+    {
+      id: 'listComments',
+      name: 'ListComments',
+      type: 'Unary',
+      params: [
+        { name: 'post_id', type: 'string', required: true, placeholder: 'post-1' },
+        { name: 'limit', type: 'number', required: false, placeholder: '10' },
+      ],
+    },
+    {
+      id: 'createComment',
+      name: 'CreateComment',
+      type: 'Unary',
+      params: [
+        { name: 'post_id', type: 'string', required: true, placeholder: 'post-1' },
+        { name: 'content', type: 'string', required: true, placeholder: 'Great post!' },
+      ],
+    },
+  ],
+  HealthService: [
+    {
+      id: 'getHealth',
+      name: 'GetHealth',
+      type: 'Unary',
+      params: [],
+    },
+    {
+      id: 'getVersion',
+      name: 'GetVersion',
+      type: 'Unary',
+      params: [],
+    },
+    {
+      id: 'ping',
+      name: 'Ping',
+      type: 'Unary',
+      params: [],
+    },
+  ],
+  AdvancedService: [
+    {
+      id: 'getAllScalarTypes',
+      name: 'GetAllScalarTypes',
+      type: 'Unary',
+      params: [
+        { name: 'id', type: 'string', required: true, placeholder: 'scalar-1' },
+      ],
+    },
+    {
+      id: 'getNotification',
+      name: 'GetNotification',
+      type: 'Unary',
+      params: [
+        { name: 'id', type: 'string', required: true, placeholder: 'notif-1' },
+      ],
+    },
+    {
+      id: 'getUserPreferences',
+      name: 'GetUserPreferences',
+      type: 'Unary',
+      params: [
+        { name: 'user_id', type: 'string', required: true, placeholder: 'user-1' },
+      ],
+    },
+    {
+      id: 'getCompany',
+      name: 'GetCompany',
+      type: 'Unary',
+      params: [
+        { name: 'id', type: 'string', required: true, placeholder: 'company-1' },
+      ],
+    },
+    {
+      id: 'getAdvancedOrder',
+      name: 'GetAdvancedOrder',
+      type: 'Unary',
+      params: [
+        { name: 'id', type: 'string', required: true, placeholder: 'order-1' },
+      ],
+    },
+    {
+      id: 'listAdvancedOrders',
+      name: 'ListAdvancedOrders',
+      type: 'Unary',
+      params: [
+        { name: 'page', type: 'number', required: false, placeholder: '1' },
+        { name: 'limit', type: 'number', required: false, placeholder: '10' },
+      ],
+    },
+    {
+      id: 'getConfig',
+      name: 'GetConfig',
+      type: 'Unary',
+      params: [
+        { name: 'id', type: 'string', required: true, placeholder: 'config-1' },
+      ],
+    },
+    {
+      id: 'getTreeNode',
+      name: 'GetTreeNode',
+      type: 'Unary',
+      params: [
+        { name: 'id', type: 'string', required: true, placeholder: 'node-1' },
+        { name: 'max_depth', type: 'number', required: false, placeholder: '3' },
+      ],
+    },
+    {
+      id: 'getCommentThread',
+      name: 'GetCommentThread',
+      type: 'Unary',
+      params: [
+        { name: 'id', type: 'string', required: true, placeholder: 'thread-1' },
+        { name: 'max_depth', type: 'number', required: false, placeholder: '3' },
+      ],
+    },
+    {
+      id: 'getOrgChart',
+      name: 'GetOrgChart',
+      type: 'Unary',
+      params: [
+        { name: 'id', type: 'string', required: true, placeholder: 'org-1' },
+        { name: 'include_reports', type: 'string', required: false, placeholder: 'true' },
+      ],
+    },
+    {
+      id: 'getLinkedList',
+      name: 'GetLinkedList',
+      type: 'Unary',
+      params: [
+        { name: 'id', type: 'string', required: true, placeholder: 'list-1' },
+        { name: 'max_length', type: 'number', required: false, placeholder: '5' },
+      ],
+    },
+    {
+      id: 'getGraph',
+      name: 'GetGraph',
+      type: 'Unary',
+      params: [
+        { name: 'id', type: 'string', required: true, placeholder: 'graph-1' },
+        { name: 'max_hops', type: 'number', required: false, placeholder: '2' },
+      ],
+    },
+    {
+      id: 'getEvent',
+      name: 'GetEvent',
+      type: 'Unary',
+      params: [
+        { name: 'id', type: 'string', required: true, placeholder: 'event-1' },
+      ],
+    },
+    {
+      id: 'createEvent',
+      name: 'CreateEvent',
+      type: 'Unary',
+      params: [
+        { name: 'name', type: 'string', required: true, placeholder: 'Conference 2024' },
+      ],
+    },
+  ],
+  EdgeCaseService: [
+    {
+      id: 'getTotalCount',
+      name: 'GetTotalCount',
+      type: 'Unary',
+      params: [],
+    },
+    {
+      id: 'getSystemStatus',
+      name: 'GetSystemStatus',
+      type: 'Unary',
+      params: [],
+    },
+    {
+      id: 'isFeatureEnabled',
+      name: 'IsFeatureEnabled',
+      type: 'Unary',
+      params: [
+        { name: 'feature_name', type: 'string', required: true, placeholder: 'dark_mode' },
+      ],
+    },
+    {
+      id: 'getTags',
+      name: 'GetTags',
+      type: 'Unary',
+      params: [],
+    },
+    {
+      id: 'getFeaturedProducts',
+      name: 'GetFeaturedProducts',
+      type: 'Unary',
+      params: [],
+    },
+    {
+      id: 'getSearchSuggestions',
+      name: 'GetSearchSuggestions',
+      type: 'Unary',
+      params: [
+        { name: 'query', type: 'string', required: true, placeholder: 'laptop' },
+        { name: 'limit', type: 'number', required: false, placeholder: '10' },
+      ],
+    },
+    {
+      id: 'getAdminUser',
+      name: 'GetAdminUser',
+      type: 'Unary',
+      params: [
+        { name: 'id', type: 'number', required: true, placeholder: '1' },
+      ],
+    },
+    {
+      id: 'getReport',
+      name: 'GetReport',
+      type: 'Unary',
+      params: [
+        { name: 'id', type: 'string', required: true, placeholder: 'report-1' },
+      ],
+    },
+    {
+      id: 'getMetrics',
+      name: 'GetMetrics',
+      type: 'Unary',
+      params: [],
+    },
+    {
+      id: 'getSettings',
+      name: 'GetSettings',
+      type: 'Unary',
+      params: [],
+    },
+    {
+      id: 'updateSettings',
+      name: 'UpdateSettings',
+      type: 'Unary',
+      params: [
+        { name: 'display_name', type: 'string', required: false, placeholder: 'My Display Name' },
+        { name: 'volume', type: 'number', required: false, placeholder: '50' },
+        { name: 'brightness', type: 'number', required: false, placeholder: '0.8' },
+        { name: 'notifications_enabled', type: 'string', required: false, placeholder: 'true' },
+      ],
+    },
+    {
+      id: 'clearCache',
+      name: 'ClearCache',
+      type: 'Unary',
+      params: [],
+    },
+    {
+      id: 'deleteSession',
+      name: 'DeleteSession',
+      type: 'Unary',
+      params: [
+        { name: 'id', type: 'string', required: true, placeholder: 'session-123' },
+      ],
+    },
+  ],
+  ActivityService: [
+    {
+      id: 'listActivities',
+      name: 'ListActivities',
+      type: 'Unary',
+      params: [
+        { name: 'cursor', type: 'string', required: false, placeholder: '' },
+        { name: 'limit', type: 'number', required: false, placeholder: '10' },
+        { name: 'user_id', type: 'string', required: false, placeholder: '' },
+        { name: 'direction', type: 'number', required: false, placeholder: '0' },
+      ],
+    },
+    {
+      id: 'getActivity',
+      name: 'GetActivity',
+      type: 'Unary',
+      params: [
+        { name: 'id', type: 'string', required: true, placeholder: 'activity-1' },
       ],
     },
   ],

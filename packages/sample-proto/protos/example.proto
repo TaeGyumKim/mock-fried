@@ -130,6 +130,7 @@ message ListUsersResponse {
   int32 total = 2;
   int32 page = 3;
   int32 limit = 4;
+  int32 total_pages = 5;
 }
 
 message User {
@@ -187,6 +188,9 @@ message CreateProductRequest {
 message ListProductsResponse {
   repeated Product products = 1;
   int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  int32 total_pages = 5;
 }
 
 message Product {
@@ -236,6 +240,7 @@ message ListShopOrdersResponse {
   int32 total = 2;
   int32 page = 3;
   int32 limit = 4;
+  int32 total_pages = 5;
 }
 
 message CreateShopOrderRequest {
@@ -302,7 +307,9 @@ message ListPostsRequest {
 message ListPostsResponse {
   repeated Post posts = 1;
   string next_cursor = 2;  // Next page cursor
-  bool has_more = 3;       // More data available
+  string prev_cursor = 3;  // Previous page cursor (양방향)
+  bool has_more = 4;       // More data available
+  bool has_prev = 5;       // Previous data available (양방향)
 }
 
 message CreatePostRequest {
@@ -336,6 +343,9 @@ message ListCommentsRequest {
 message ListCommentsResponse {
   repeated PostComment comments = 1;
   int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  int32 total_pages = 5;
 }
 
 message CreateCommentRequest {
@@ -538,6 +548,8 @@ message ListAdvancedOrdersResponse {
   repeated AdvancedOrder orders = 1;
   int32 total = 2;
   int32 page = 3;
+  int32 limit = 4;
+  int32 total_pages = 5;
 }
 
 // 6. Complex Map Types
@@ -668,4 +680,255 @@ message GetEventRequest {
 message CreateEventRequest {
   string name = 1;
   Duration duration = 2;
+}
+
+// ============================================================================
+// EdgeCaseService - OpenAPI EdgeCases 대응
+// ============================================================================
+
+service EdgeCaseService {
+  // Primitive responses (래퍼 메시지 사용)
+  rpc GetTotalCount(Empty) returns (Int64Value);
+  rpc GetSystemStatus(Empty) returns (SystemStatusResponse);
+  rpc IsFeatureEnabled(FeatureRequest) returns (BoolValue);
+
+  // Direct array responses (pagination 없이)
+  rpc GetTags(Empty) returns (StringList);
+  rpc GetFeaturedProducts(Empty) returns (ProductList);
+  rpc GetSearchSuggestions(SearchQuery) returns (StringList);
+
+  // allOf composition 대응
+  rpc GetAdminUser(GetAdminUserRequest) returns (AdminUser);
+
+  // Report (deeply nested - OpenAPI와 동일 구조)
+  rpc GetReport(GetReportRequest) returns (Report);
+
+  // Metrics (다양한 수치 타입)
+  rpc GetMetrics(Empty) returns (Metrics);
+
+  // Settings CRUD
+  rpc GetSettings(Empty) returns (Settings);
+  rpc UpdateSettings(Settings) returns (Settings);
+
+  // Empty response (204 대응)
+  rpc ClearCache(Empty) returns (Empty);
+  rpc DeleteSession(DeleteSessionRequest) returns (Empty);
+}
+
+// ============================================================================
+// ActivityService - 양방향 Cursor Pagination 예제
+// ============================================================================
+
+service ActivityService {
+  rpc ListActivities(ListActivitiesRequest) returns (ListActivitiesResponse);
+  rpc GetActivity(GetActivityRequest) returns (Activity);
+}
+
+// ============================================================================
+// MESSAGES - EdgeCaseService
+// ============================================================================
+
+// Primitive Value Wrappers
+message Int64Value {
+  int64 value = 1;
+}
+
+message BoolValue {
+  bool value = 1;
+}
+
+message StringValue {
+  string value = 1;
+}
+
+// System Status (string enum response)
+message SystemStatusResponse {
+  SystemStatus status = 1;
+  string message = 2;
+
+  enum SystemStatus {
+    SYSTEM_STATUS_UNSPECIFIED = 0;
+    SYSTEM_STATUS_HEALTHY = 1;
+    SYSTEM_STATUS_DEGRADED = 2;
+    SYSTEM_STATUS_CRITICAL = 3;
+  }
+}
+
+message FeatureRequest {
+  string feature_name = 1;
+}
+
+// Direct Array Responses
+message StringList {
+  repeated string items = 1;
+}
+
+message ProductList {
+  repeated Product products = 1;
+}
+
+message SearchQuery {
+  string query = 1;
+  int32 limit = 2;
+}
+
+// AdminUser (allOf composition - User 확장)
+message GetAdminUserRequest {
+  int32 id = 1;
+}
+
+message AdminUser {
+  // User 필드 포함 (allOf 대응)
+  int32 id = 1;
+  string name = 2;
+  string email = 3;
+  UserRole role = 4;
+  int64 created_at = 5;
+  int64 updated_at = 6;
+  UserProfile profile = 7;
+  // Admin 전용 필드
+  repeated string permissions = 8;
+  string last_login_ip = 9;
+  int32 login_count = 10;
+  bool is_super_admin = 11;
+}
+
+// Report (Deeply Nested - OpenAPI와 동일 구조)
+message GetReportRequest {
+  string id = 1;
+}
+
+message Report {
+  string id = 1;
+  string title = 2;
+  ReportMetadata metadata = 3;
+  repeated ReportSection sections = 4;
+}
+
+message ReportMetadata {
+  ReportAuthor author = 1;
+  int64 created_at = 2;
+  int32 version = 3;
+}
+
+message ReportAuthor {
+  string id = 1;
+  string name = 2;
+  ReportDepartment department = 3;
+}
+
+message ReportDepartment {
+  string id = 1;
+  string name = 2;
+  ReportOrganization organization = 3;
+}
+
+message ReportOrganization {
+  string id = 1;
+  string name = 2;
+}
+
+message ReportSection {
+  string id = 1;
+  string title = 2;
+  string content = 3;
+  repeated ReportSubsection subsections = 4;
+}
+
+message ReportSubsection {
+  string id = 1;
+  string title = 2;
+  string content = 3;
+}
+
+// Metrics (다양한 수치 타입 - OpenAPI와 동일)
+message Metrics {
+  int32 total_users = 1;
+  int64 total_requests = 2;
+  int32 active_connections = 3;
+  float cpu_usage = 4;
+  double memory_usage = 5;
+  double error_rate = 6;
+  double latency_ms = 7;
+  double throughput = 8;
+}
+
+// Settings (min/max 제약 포함)
+message Settings {
+  string display_name = 1;
+  int32 volume = 2;
+  float brightness = 3;
+  repeated string favorite_colors = 4;
+  Theme theme = 5;
+  Language language = 6;
+  bool notifications_enabled = 7;
+  string phone_number = 8;
+
+  enum Theme {
+    THEME_UNSPECIFIED = 0;
+    THEME_LIGHT = 1;
+    THEME_DARK = 2;
+    THEME_SYSTEM = 3;
+  }
+
+  enum Language {
+    LANGUAGE_UNSPECIFIED = 0;
+    LANGUAGE_KO = 1;
+    LANGUAGE_EN = 2;
+    LANGUAGE_JA = 3;
+    LANGUAGE_ZH = 4;
+  }
+}
+
+// Empty response helpers
+message DeleteSessionRequest {
+  string id = 1;
+}
+
+// ============================================================================
+// MESSAGES - ActivityService (양방향 Cursor Pagination)
+// ============================================================================
+
+message GetActivityRequest {
+  string id = 1;
+}
+
+message Activity {
+  string id = 1;
+  string user_id = 2;
+  ActivityType type = 3;
+  string description = 4;
+  map<string, string> metadata = 5;
+  int64 created_at = 6;
+
+  enum ActivityType {
+    ACTIVITY_TYPE_UNSPECIFIED = 0;
+    ACTIVITY_TYPE_LOGIN = 1;
+    ACTIVITY_TYPE_LOGOUT = 2;
+    ACTIVITY_TYPE_VIEW = 3;
+    ACTIVITY_TYPE_CREATE = 4;
+    ACTIVITY_TYPE_UPDATE = 5;
+    ACTIVITY_TYPE_DELETE = 6;
+  }
+}
+
+message ListActivitiesRequest {
+  string cursor = 1;
+  int32 limit = 2;
+  string user_id = 3;
+  CursorDirection direction = 4;
+
+  enum CursorDirection {
+    FORWARD = 0;
+    BACKWARD = 1;
+  }
+}
+
+message ListActivitiesResponse {
+  repeated Activity activities = 1;
+  string next_cursor = 2;
+  string prev_cursor = 3;
+  bool has_more = 4;
+  bool has_prev = 5;
+  int32 total = 6;
 }
