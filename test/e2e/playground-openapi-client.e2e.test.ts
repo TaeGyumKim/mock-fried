@@ -17,6 +17,35 @@ describe('OpenAPI Client Package Mode E2E', async () => {
   })
 
   // ============================================
+  // Page Loading Tests - Verify no 500 errors
+  // ============================================
+  describe('Page Loading', () => {
+    it('should render index page without error', async () => {
+      const html = await $fetch('/')
+      expect(html).toBeDefined()
+      expect(typeof html).toBe('string')
+      expect(html).not.toContain('500')
+      expect(html).not.toContain('Internal Server Error')
+    })
+
+    it('should render api-test page without error', async () => {
+      const html = await $fetch('/api-test')
+      expect(html).toBeDefined()
+      expect(typeof html).toBe('string')
+      expect(html).not.toContain('500')
+      expect(html).not.toContain('Internal Server Error')
+    })
+
+    it('should render explorer page without error', async () => {
+      const html = await $fetch('/explorer')
+      expect(html).toBeDefined()
+      expect(typeof html).toBe('string')
+      expect(html).not.toContain('500')
+      expect(html).not.toContain('Internal Server Error')
+    })
+  })
+
+  // ============================================
   // Users API - Basic Operations
   // ============================================
   describe('Users API', () => {
