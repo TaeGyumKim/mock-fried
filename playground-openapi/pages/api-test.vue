@@ -157,6 +157,8 @@ const apiList = [
   { name: 'Comments', description: '댓글 관리 (중첩 리소스)' },
   { name: 'Health', description: '헬스 체크 및 시스템 정보' },
   { name: 'EdgeCases', description: 'Primitive, Nested, Recursive 등 다양한 스키마' },
+  { name: 'AdvancedCases', description: 'Proto AdvancedService 대응 (Scalars, Company, Preferences)' },
+  { name: 'Activities', description: '양방향 Cursor Pagination' },
 ]
 
 // 각 API별 엔드포인트 정의
@@ -442,6 +444,112 @@ const endpointsByApi: Record<string, Endpoint[]> = {
       path: '/sessions/{id}',
       params: [
         { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'session-1' },
+      ],
+    },
+  ],
+  AdvancedCases: [
+    // All scalar types
+    {
+      id: 'getAllScalarTypes',
+      method: 'GET',
+      path: '/advanced/scalars',
+      params: [],
+    },
+    // Deeply nested Company (Address, Departments, Employees)
+    {
+      id: 'getCompany',
+      method: 'GET',
+      path: '/advanced/company/{id}',
+      params: [
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'company-1' },
+      ],
+    },
+    // User preferences
+    {
+      id: 'getUserPreferences',
+      method: 'GET',
+      path: '/advanced/preferences',
+      params: [],
+    },
+    {
+      id: 'updateUserPreferences',
+      method: 'PUT',
+      path: '/advanced/preferences',
+      params: [],
+    },
+    // Advanced orders with page pagination
+    {
+      id: 'listAdvancedOrders',
+      method: 'GET',
+      path: '/advanced/orders',
+      params: [
+        { name: 'page', type: 'number', in: 'query', required: false, placeholder: '1' },
+        { name: 'limit', type: 'number', in: 'query', required: false, placeholder: '20' },
+      ],
+    },
+    {
+      id: 'getAdvancedOrder',
+      method: 'GET',
+      path: '/advanced/orders/{id}',
+      params: [
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'order-1' },
+      ],
+    },
+    // Recursive TreeNode
+    {
+      id: 'getTreeNode',
+      method: 'GET',
+      path: '/advanced/tree/{id}',
+      params: [
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'node-1' },
+      ],
+    },
+    // Recursive OrgMember
+    {
+      id: 'getOrgChart',
+      method: 'GET',
+      path: '/advanced/org-chart/{id}',
+      params: [
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'member-1' },
+      ],
+    },
+    // Recursive CommentThread
+    {
+      id: 'getCommentThread',
+      method: 'GET',
+      path: '/advanced/comment-thread/{id}',
+      params: [
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'thread-1' },
+      ],
+    },
+    // Graph structure (nodes + edges)
+    {
+      id: 'getGraph',
+      method: 'GET',
+      path: '/advanced/graph/{id}',
+      params: [
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'graph-1' },
+      ],
+    },
+  ],
+  Activities: [
+    // Bidirectional cursor pagination
+    {
+      id: 'listActivities',
+      method: 'GET',
+      path: '/activities',
+      params: [
+        { name: 'cursor', type: 'string', in: 'query', required: false, placeholder: '' },
+        { name: 'limit', type: 'number', in: 'query', required: false, placeholder: '20' },
+        { name: 'userId', type: 'string', in: 'query', required: false, placeholder: 'user-123' },
+      ],
+    },
+    {
+      id: 'getActivity',
+      method: 'GET',
+      path: '/activities/{id}',
+      params: [
+        { name: 'id', type: 'string', in: 'path', required: true, placeholder: 'activity-1' },
       ],
     },
   ],
