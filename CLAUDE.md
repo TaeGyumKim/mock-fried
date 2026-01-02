@@ -335,6 +335,11 @@ npm install mock-fried@1.0.4
 **문제**: TreeNode.children 같은 재귀 타입이 페이지네이션으로 오인됨
 **해결**: 메타 필드(page/cursor) 없으면 페이지네이션 감지 스킵
 
+### v1.1.2 - OpenAPI $ref 스키마 해석 수정
+
+**문제**: 페이지네이션 응답의 items가 `$ref`로 참조된 경우 ID 필드 감지 및 Mock 생성 실패
+**해결**: `resolveSchemaRef` 헬퍼 추가, `OpenAPIItemProvider`에 `schemaContext` 전달
+
 ## 코드 스타일
 
 - ESLint + Prettier 사용

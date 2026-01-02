@@ -59,6 +59,16 @@ function loadOpenAPISpec(specPath: string): OpenAPISpec {
   return JSON.parse(content) as OpenAPISpec
 }
 
+function resolveSchemaRef(
+  schema: OpenAPISchema,
+  schemas?: Record<string, Record<string, unknown>>,
+): OpenAPISchema {
+  if (!schema.$ref || !schemas) return schema
+  const schemaName = schema.$ref.split('/').pop()
+  const resolved = schemaName ? schemas[schemaName] : undefined
+  return (resolved ?? schema) as OpenAPISchema
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getOpenAPIBackend(specPath: string): Promise<any> {
   if (apiInstance && cachedSpecPath === specPath) {
@@ -119,9 +129,15 @@ async function getOpenAPIBackend(specPath: string): Promise<any> {
       else if (jsonContent?.schema) {
         const schema = jsonContent.schema as OpenAPISchema
         const seed = `${operationId}-${JSON.stringify(c.request?.params || {})}`
+        const apiSchemas = (c.api?.document as OpenAPISpec | undefined)?.components?.schemas
+        const schemaContext: SchemaContext = {
+          schemas: apiSchemas || cachedOpenAPISpec?.components?.schemas,
+          maxDepth: 10,
+        }
+        const resolvedSchema = resolveSchemaRef(schema, schemaContext.schemas)
 
         // Pagination 응답 스키마 분석
-        const paginationInfo = analyzePaginationSchema(schema)
+        const paginationInfo = analyzePaginationSchema(resolvedSchema)
 
         if (paginationInfo) {
           // Pagination 파라미터 추출
@@ -134,6 +150,7 @@ async function getOpenAPIBackend(specPath: string): Promise<any> {
           // ItemProvider 생성
           const itemProvider = new OpenAPIItemProvider(paginationInfo.itemSchema, {
             modelName: operationId,
+            schemaContext,
           })
 
           // Pagination Manager 초기화 (캐싱)
@@ -222,12 +239,6 @@ async function getOpenAPIBackend(specPath: string): Promise<any> {
           const numericSeed = hashString(seed)
           // 스키마 컨텍스트 생성 ($ref 해결용)
           // OpenAPIBackend의 document에서 스키마 가져오기 (더 안정적)
-          const apiSchemas = (c.api?.document as OpenAPISpec | undefined)?.components?.schemas
-          const schemaContext: SchemaContext = {
-            schemas: apiSchemas || cachedOpenAPISpec?.components?.schemas,
-            maxDepth: 10,
-          }
-
           mockData = generateMockFromSchema(
             schema as Record<string, unknown>,
             numericSeed,

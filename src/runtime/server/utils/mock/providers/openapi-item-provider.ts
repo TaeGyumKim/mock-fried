@@ -4,6 +4,7 @@
  * OpenAPI 스키마를 기반으로 Mock 아이템 생성
  */
 import type { ItemProvider, ItemProviderOptions } from '../pagination/interfaces'
+import type { SchemaContext } from '../openapi-generator'
 import { generateMockFromSchema } from '../openapi-generator'
 import { hashString, generateIdValue, DEFAULT_ID_CONFIG } from '../shared'
 import type { MockIdConfig } from '../../../../../types'
@@ -54,12 +55,14 @@ export class OpenAPIItemProvider implements ItemProvider<Record<string, unknown>
   private idFieldName: string
   private idConfig: MockIdConfig
   private modelName: string
+  private schemaContext?: SchemaContext
 
   constructor(
     schema: OpenAPISchema,
-    options?: ItemProviderOptions & { idConfig?: MockIdConfig },
+    options?: ItemProviderOptions & { idConfig?: MockIdConfig, schemaContext?: SchemaContext },
   ) {
     this.schema = schema
+    this.schemaContext = options?.schemaContext
     this.idFieldName = options?.idFieldName ?? this.detectIdField(schema) ?? 'id'
     this.idConfig = options?.idConfig ?? DEFAULT_ID_CONFIG
     this.modelName = options?.modelName ?? 'OpenAPIItem'
@@ -69,7 +72,8 @@ export class OpenAPIItemProvider implements ItemProvider<Record<string, unknown>
    * 스키마에서 ID 필드 감지
    */
   private detectIdField(schema: OpenAPISchema): string | null {
-    const properties = schema.properties
+    const resolvedSchema = this.resolveSchema(schema)
+    const properties = resolvedSchema.properties
     if (!properties) return null
 
     // 우선순위: id > *Id > *_id > uuid > key
@@ -89,12 +93,23 @@ export class OpenAPIItemProvider implements ItemProvider<Record<string, unknown>
     return null
   }
 
+  private resolveSchema(schema: OpenAPISchema): OpenAPISchema {
+    if (!schema.$ref || !this.schemaContext?.schemas) return schema
+    const schemaName = schema.$ref.split('/').pop()
+    const resolved = schemaName ? this.schemaContext.schemas[schemaName] : undefined
+    return (resolved ?? schema) as OpenAPISchema
+  }
+
   /**
    * 인덱스 기반 아이템 생성
    */
   generateItem(index: number, seed: string): Record<string, unknown> {
     const numericSeed = hashString(`${seed}-${index}`)
-    const item = generateMockFromSchema(this.schema as unknown as Record<string, unknown>, numericSeed) as Record<string, unknown>
+    const item = generateMockFromSchema(
+      this.schema as unknown as Record<string, unknown>,
+      numericSeed,
+      this.schemaContext,
+    ) as Record<string, unknown>
     return item
   }
 
