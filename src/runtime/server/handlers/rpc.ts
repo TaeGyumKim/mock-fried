@@ -135,21 +135,248 @@ export function clearProtoCache(): void {
 }
 
 /**
- * 메서드 정의에서 응답 타입 정보 추출
+ * Protobuf 타입 번호를 문자열로 변환
+ * https://protobuf.dev/programming-guides/proto3/#scalar
  */
-function getResponseTypeInfo(methodDef: grpc.MethodDefinition<unknown, unknown>): Record<string, unknown> {
-  // proto-loader의 타입 정의에서 responseType 추출
+const PROTO_TYPE_MAP: Record<number, string> = {
+  1: 'double',
+  2: 'float',
+  3: 'int64',
+  4: 'uint64',
+  5: 'int32',
+  6: 'fixed64',
+  7: 'fixed32',
+  8: 'bool',
+  9: 'string',
+  10: 'group',
+  11: 'message', // 중첩 메시지
+  12: 'bytes',
+  13: 'uint32',
+  14: 'enum',
+  15: 'sfixed32',
+  16: 'sfixed64',
+  17: 'sint32',
+  18: 'sint64',
+}
+
+/**
+ * Protobuf 필드 descriptor 인터페이스
+ */
+interface ProtoFieldDescriptor {
+  name: string
+  number: number
+  label: number // 1=OPTIONAL, 2=REQUIRED, 3=REPEATED
+  type: number // PROTO_TYPE_MAP 참조
+  typeName?: string // 메시지/enum 타입 이름
+  defaultValue?: unknown
+  oneofIndex?: number // oneof 필드 인덱스
+  proto3Optional?: boolean // proto3 optional 여부
+}
+
+/**
+ * Proto 타입 descriptor 인터페이스
+ */
+interface ProtoTypeDescriptor {
+  field?: ProtoFieldDescriptor[]
+  nestedType?: ProtoTypeDescriptor[]
+  enumType?: Array<{ name?: string, value?: Array<{ name: string, number: number }> }>
+  name?: string
+  oneofDecl?: Array<{ name: string }>
+}
+
+/**
+ * 타입 해석 컨텍스트
+ */
+interface TypeResolverContext {
+  packageDefinition: protoLoader.PackageDefinition
+  visitedTypes: Set<string>
+  depth: number
+  maxDepth: number
+}
+
+/**
+ * packageDefinition에서 타입 정보 찾기
+ */
+function findTypeInPackageDefinition(
+  typeName: string,
+  packageDefinition: protoLoader.PackageDefinition,
+): ProtoTypeDescriptor | null {
+  // typeName은 ".package.TypeName" 형식
+  const cleanName = typeName.startsWith('.') ? typeName.slice(1) : typeName
+
+  // packageDefinition에서 타입 찾기
+  const typeInfo = packageDefinition[cleanName] as unknown as {
+    type?: ProtoTypeDescriptor
+  } | undefined
+
+  return typeInfo?.type || null
+}
+
+/**
+ * 필드 descriptor를 generateMockMessage 형식으로 변환
+ */
+function convertFieldDescriptor(
+  fieldDesc: ProtoFieldDescriptor,
+  protoType: ProtoTypeDescriptor,
+  context: TypeResolverContext,
+): { type: string, rule?: string, resolvedType?: Record<string, unknown>, typeName?: string } {
+  const typeName = PROTO_TYPE_MAP[fieldDesc.type] || 'string'
+
+  const result: {
+    type: string
+    rule?: string
+    resolvedType?: Record<string, unknown>
+    typeName?: string
+  } = {
+    type: typeName,
+    rule: fieldDesc.label === 3 ? 'repeated' : undefined,
+  }
+
+  // 중첩 메시지 또는 enum 타입인 경우
+  if (fieldDesc.typeName) {
+    const shortName = fieldDesc.typeName.split('.').pop() || fieldDesc.typeName
+    result.typeName = shortName
+
+    // 깊이 제한 체크
+    if (context.depth >= context.maxDepth) {
+      return result
+    }
+
+    // 이미 방문한 타입인지 체크 (재귀 방지)
+    if (context.visitedTypes.has(fieldDesc.typeName)) {
+      // 재귀 타입: 빈 resolvedType 반환하여 generateMockMessage에서 처리하도록
+      result.resolvedType = { fields: {}, name: shortName }
+      return result
+    }
+
+    // 1. 같은 메시지 내의 nested enum 찾기
+    const enumType = protoType.enumType?.find(
+      (e: unknown) => (e as { name?: string }).name === shortName,
+    )
+
+    if (enumType) {
+      result.resolvedType = {
+        values: enumType.value?.reduce((acc, v) => {
+          acc[v.name] = v.number
+          return acc
+        }, {} as Record<string, number>),
+      }
+      return result
+    }
+
+    // 2. 같은 메시지 내의 nested type 찾기
+    const nestedType = protoType.nestedType?.find(
+      (t: unknown) => (t as { name?: string }).name === shortName,
+    )
+
+    if (nestedType) {
+      const nestedContext = {
+        ...context,
+        depth: context.depth + 1,
+        visitedTypes: new Set([...context.visitedTypes, fieldDesc.typeName]),
+      }
+      result.resolvedType = resolveProtoType(nestedType, nestedContext)
+      return result
+    }
+
+    // 3. packageDefinition에서 외부 타입 찾기
+    const externalType = findTypeInPackageDefinition(fieldDesc.typeName, context.packageDefinition)
+
+    if (externalType) {
+      const externalContext = {
+        ...context,
+        depth: context.depth + 1,
+        visitedTypes: new Set([...context.visitedTypes, fieldDesc.typeName]),
+      }
+      result.resolvedType = resolveProtoType(externalType, externalContext)
+    }
+  }
+
+  return result
+}
+
+/**
+ * Proto 타입을 generateMockMessage 형식으로 변환
+ */
+function resolveProtoType(
+  protoType: ProtoTypeDescriptor,
+  context: TypeResolverContext,
+): Record<string, unknown> {
+  if (!protoType.field) {
+    return { fields: {}, name: protoType.name }
+  }
+
+  const fields: Record<string, {
+    type: string
+    rule?: string
+    resolvedType?: Record<string, unknown>
+    typeName?: string
+  }> = {}
+
+  // oneof 필드 그룹 추적
+  const oneofGroups = new Map<number, string[]>()
+
+  for (const fieldDesc of protoType.field) {
+    // oneof 그룹 추적
+    if (fieldDesc.oneofIndex !== undefined && !fieldDesc.proto3Optional) {
+      const group = oneofGroups.get(fieldDesc.oneofIndex) || []
+      group.push(fieldDesc.name)
+      oneofGroups.set(fieldDesc.oneofIndex, group)
+    }
+
+    fields[fieldDesc.name] = convertFieldDescriptor(fieldDesc, protoType, context)
+  }
+
+  return {
+    fields,
+    name: protoType.name,
+    // oneof 그룹 정보 (첫 번째 필드만 생성하도록)
+    oneofGroups: oneofGroups.size > 0 ? Object.fromEntries(oneofGroups) : undefined,
+  }
+}
+
+/**
+ * 메서드 정의에서 응답 타입 정보 추출
+ *
+ * proto-loader의 구조:
+ * {
+ *   format: string,
+ *   type: {
+ *     field: ProtoFieldDescriptor[],
+ *     nestedType: [],
+ *     enumType: [],
+ *     name: string
+ *   },
+ *   fileDescriptorProtos: Buffer[]
+ * }
+ *
+ * generateMockMessage()가 기대하는 형식:
+ * {
+ *   fields: {
+ *     fieldName: { type: string, rule?: string, resolvedType?: {} }
+ *   }
+ * }
+ */
+function getResponseTypeInfo(
+  methodDef: grpc.MethodDefinition<unknown, unknown>,
+  packageDefinition: protoLoader.PackageDefinition,
+): Record<string, unknown> {
   const responseType = methodDef.responseType as unknown as {
-    type?: Record<string, unknown>
-    format?: string
+    type?: ProtoTypeDescriptor
   }
 
-  if (responseType?.type) {
-    return responseType.type
+  if (!responseType?.type?.field) {
+    return {}
   }
 
-  // 기본 빈 객체 반환
-  return {}
+  const context: TypeResolverContext = {
+    packageDefinition,
+    visitedTypes: new Set<string>(),
+    depth: 0,
+    maxDepth: 5, // 최대 재귀 깊이
+  }
+
+  return resolveProtoType(responseType.type, context)
 }
 
 export default defineEventHandler(async (event) => {
@@ -225,7 +452,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // 응답 타입 정보 추출
-  const responseTypeInfo = getResponseTypeInfo(methodDef) as ProtoMessageType
+  const responseTypeInfo = getResponseTypeInfo(methodDef, cache.packageDefinition) as ProtoMessageType
 
   // seed 생성 (결정론적)
   const seed = deriveSeedFromRequest(requestBody)

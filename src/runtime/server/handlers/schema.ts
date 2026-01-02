@@ -2,7 +2,8 @@ import { defineEventHandler, createError } from 'h3'
 import { useRuntimeConfig } from '#imports'
 import { consola } from 'consola'
 import { createRequire } from 'node:module'
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs'
+import { join, extname } from 'pathe'
 import yaml from 'js-yaml'
 import type {
   ApiSchema,
@@ -247,6 +248,35 @@ function parseOpenApiSpec(specPath: string): OpenApiSchema | undefined {
 }
 
 /**
+ * 디렉토리에서 모든 .proto 파일 찾기
+ */
+function findProtoFiles(dirPath: string): string[] {
+  const files: string[] = []
+
+  const stat = statSync(dirPath)
+  if (stat.isFile() && extname(dirPath) === '.proto') {
+    return [dirPath]
+  }
+
+  if (stat.isDirectory()) {
+    const entries = readdirSync(dirPath)
+    for (const entry of entries) {
+      const fullPath = join(dirPath, entry)
+      const entryStat = statSync(fullPath)
+
+      if (entryStat.isFile() && extname(entry) === '.proto') {
+        files.push(fullPath)
+      }
+      else if (entryStat.isDirectory()) {
+        files.push(...findProtoFiles(fullPath))
+      }
+    }
+  }
+
+  return files
+}
+
+/**
  * Proto 파일에서 스키마 메타데이터 추출
  */
 async function parseProtoSpec(protoPath: string): Promise<RpcSchema | undefined> {
@@ -256,13 +286,24 @@ async function parseProtoSpec(protoPath: string): Promise<RpcSchema | undefined>
 
   try {
     const protoLoader = await import('@grpc/proto-loader')
+    const { dirname } = await import('pathe')
 
-    const packageDefinition = await protoLoader.load(protoPath, {
+    // 디렉토리인 경우 모든 proto 파일 찾기
+    const stat = statSync(protoPath)
+    const protoFiles = stat.isDirectory() ? findProtoFiles(protoPath) : [protoPath]
+    const includeDir = stat.isDirectory() ? protoPath : dirname(protoPath)
+
+    if (protoFiles.length === 0) {
+      return undefined
+    }
+
+    const packageDefinition = await protoLoader.load(protoFiles, {
       keepCase: false,
       longs: String,
       enums: String,
       defaults: true,
       oneofs: true,
+      includeDirs: [includeDir],
     })
 
     const services: RpcServiceSchema[] = []

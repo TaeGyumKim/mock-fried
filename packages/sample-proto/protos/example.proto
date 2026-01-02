@@ -2,37 +2,96 @@ syntax = "proto3";
 
 package example;
 
+// ============================================================================
+// SERVICES
+// ============================================================================
+
+// ============ Basic Services (CRUD) ============
+
 // User Service - handles user-related operations
 service UserService {
-  // Get a single user by ID
   rpc GetUser (GetUserRequest) returns (User);
-
-  // Create a new user
   rpc CreateUser (CreateUserRequest) returns (User);
-
-  // List all users with pagination
   rpc ListUsers (ListUsersRequest) returns (ListUsersResponse);
-
-  // Update an existing user
   rpc UpdateUser (UpdateUserRequest) returns (User);
-
-  // Delete a user
   rpc DeleteUser (DeleteUserRequest) returns (DeleteUserResponse);
 }
 
 // Product Service - handles product-related operations
 service ProductService {
-  // Get a single product by ID
   rpc GetProduct (GetProductRequest) returns (Product);
-
-  // List all products with filtering
   rpc ListProducts (ListProductsRequest) returns (ListProductsResponse);
-
-  // Search products by keyword
+  rpc CreateProduct (CreateProductRequest) returns (Product);
   rpc SearchProducts (SearchProductsRequest) returns (ListProductsResponse);
 }
 
-// ============ User Messages ============
+// Order Service - CRUD with nested messages (OrderItem)
+service OrderService {
+  rpc GetOrder (GetOrderByIdRequest) returns (ShopOrder);
+  rpc ListOrders (ListShopOrdersRequest) returns (ListShopOrdersResponse);
+  rpc CreateOrder (CreateShopOrderRequest) returns (ShopOrder);
+  rpc DeleteOrder (DeleteOrderRequest) returns (DeleteOrderResponse);
+}
+
+// Post Service - Cursor-based pagination
+service PostService {
+  rpc GetPost (GetPostRequest) returns (Post);
+  rpc ListPosts (ListPostsRequest) returns (ListPostsResponse);
+  rpc CreatePost (CreatePostRequest) returns (Post);
+}
+
+// Comment Service - Nested resource pattern (/posts/{postId}/comments)
+service CommentService {
+  rpc ListComments (ListCommentsRequest) returns (ListCommentsResponse);
+  rpc CreateComment (CreateCommentRequest) returns (PostComment);
+}
+
+// Health Service - Simple endpoints
+service HealthService {
+  rpc GetHealth (Empty) returns (HealthResponse);
+  rpc GetVersion (Empty) returns (VersionResponse);
+  rpc Ping (Empty) returns (PingResponse);
+}
+
+// ============ Advanced Service (Proto3 Feature Testing) ============
+
+service AdvancedService {
+  // All scalar types
+  rpc GetAllScalarTypes(GetAllScalarTypesRequest) returns (AllScalarTypes);
+
+  // Oneof
+  rpc GetNotification(GetNotificationRequest) returns (Notification);
+  rpc SendNotification(SendNotificationRequest) returns (Notification);
+
+  // Optional fields
+  rpc GetUserPreferences(GetUserPreferencesRequest) returns (UserPreferences);
+  rpc UpdateUserPreferences(UserPreferences) returns (UserPreferences);
+
+  // Deep nesting
+  rpc GetCompany(GetCompanyRequest) returns (Company);
+
+  // Nested enum
+  rpc GetAdvancedOrder(GetAdvancedOrderRequest) returns (AdvancedOrder);
+  rpc ListAdvancedOrders(ListAdvancedOrdersRequest) returns (ListAdvancedOrdersResponse);
+
+  // Complex maps
+  rpc GetConfig(GetConfigRequest) returns (Config);
+
+  // Recursive types
+  rpc GetTreeNode(GetTreeNodeRequest) returns (TreeNode);
+  rpc GetCommentThread(GetCommentThreadRequest) returns (RecursiveComment);
+  rpc GetOrgChart(GetOrgChartRequest) returns (OrgMember);
+  rpc GetLinkedList(GetLinkedListRequest) returns (LinkedNode);
+  rpc GetGraph(GetGraphRequest) returns (GraphNode);
+
+  // Timestamp simulation
+  rpc GetEvent(GetEventRequest) returns (Event);
+  rpc CreateEvent(CreateEventRequest) returns (Event);
+}
+
+// ============================================================================
+// MESSAGES - User
+// ============================================================================
 
 message GetUserRequest {
   int32 id = 1;
@@ -96,7 +155,9 @@ enum UserRole {
   USER_ROLE_GUEST = 3;
 }
 
-// ============ Product Messages ============
+// ============================================================================
+// MESSAGES - Product
+// ============================================================================
 
 message GetProductRequest {
   int32 id = 1;
@@ -115,6 +176,14 @@ message SearchProductsRequest {
   int32 limit = 2;
 }
 
+message CreateProductRequest {
+  string name = 1;
+  string description = 2;
+  double price = 3;
+  int32 stock = 4;
+  ProductCategory category = 5;
+}
+
 message ListProductsResponse {
   repeated Product products = 1;
   int32 total = 2;
@@ -131,9 +200,472 @@ message Product {
   ProductStatus status = 8;
 }
 
+enum ProductCategory {
+  PRODUCT_CATEGORY_UNSPECIFIED = 0;
+  PRODUCT_CATEGORY_ELECTRONICS = 1;
+  PRODUCT_CATEGORY_CLOTHING = 2;
+  PRODUCT_CATEGORY_FOOD = 3;
+  PRODUCT_CATEGORY_BOOKS = 4;
+  PRODUCT_CATEGORY_OTHER = 5;
+}
+
 enum ProductStatus {
   PRODUCT_STATUS_UNSPECIFIED = 0;
   PRODUCT_STATUS_AVAILABLE = 1;
   PRODUCT_STATUS_OUT_OF_STOCK = 2;
   PRODUCT_STATUS_DISCONTINUED = 3;
+}
+
+// ============================================================================
+// MESSAGES - Order (CRUD Service)
+// ============================================================================
+
+message GetOrderByIdRequest {
+  string id = 1;
+}
+
+message ListShopOrdersRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  OrderStatus status_filter = 3;
+  string user_id = 4;
+}
+
+message ListShopOrdersResponse {
+  repeated ShopOrder orders = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message CreateShopOrderRequest {
+  repeated OrderItemInput items = 1;
+  string shipping_address = 2;
+}
+
+message OrderItemInput {
+  string product_id = 1;
+  int32 quantity = 2;
+}
+
+message DeleteOrderRequest {
+  string id = 1;
+}
+
+message DeleteOrderResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ShopOrder {
+  string id = 1;
+  string user_id = 2;
+  OrderStatus status = 3;
+  repeated OrderItem items = 4;
+  double total = 5;
+  string currency = 6;
+  string shipping_address = 7;
+  int64 created_at = 8;
+  int64 updated_at = 9;
+}
+
+message OrderItem {
+  string product_id = 1;
+  string product_name = 2;
+  int32 quantity = 3;
+  double price = 4;
+}
+
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_PENDING = 1;
+  ORDER_STATUS_PROCESSING = 2;
+  ORDER_STATUS_SHIPPED = 3;
+  ORDER_STATUS_DELIVERED = 4;
+  ORDER_STATUS_CANCELLED = 5;
+}
+
+// ============================================================================
+// MESSAGES - Post (Cursor Pagination)
+// ============================================================================
+
+message GetPostRequest {
+  string id = 1;
+}
+
+message ListPostsRequest {
+  string cursor = 1;       // Cursor-based pagination
+  int32 limit = 2;
+  string author_id = 3;
+}
+
+message ListPostsResponse {
+  repeated Post posts = 1;
+  string next_cursor = 2;  // Next page cursor
+  bool has_more = 3;       // More data available
+}
+
+message CreatePostRequest {
+  string title = 1;
+  string content = 2;
+  repeated string tags = 3;
+}
+
+message Post {
+  string id = 1;
+  string title = 2;
+  string content = 3;
+  string author_id = 4;
+  string author_name = 5;
+  repeated string tags = 6;
+  int32 view_count = 7;
+  int32 like_count = 8;
+  int64 created_at = 9;
+  int64 updated_at = 10;
+}
+
+// ============================================================================
+// MESSAGES - Comment (Nested Resource)
+// ============================================================================
+
+message ListCommentsRequest {
+  string post_id = 1;      // Parent resource ID (nested pattern)
+  int32 limit = 2;
+}
+
+message ListCommentsResponse {
+  repeated PostComment comments = 1;
+  int32 total = 2;
+}
+
+message CreateCommentRequest {
+  string post_id = 1;
+  string content = 2;
+}
+
+message PostComment {
+  string id = 1;
+  string post_id = 2;
+  string author_id = 3;
+  string author_name = 4;
+  string content = 5;
+  int64 created_at = 6;
+}
+
+// ============================================================================
+// MESSAGES - Health (Simple)
+// ============================================================================
+
+message Empty {}
+
+message HealthResponse {
+  string status = 1;       // "ok", "degraded", "down"
+  int64 timestamp = 2;
+  int64 uptime = 3;
+}
+
+message VersionResponse {
+  string version = 1;
+  string build_date = 2;
+  string git_commit = 3;
+}
+
+message PingResponse {
+  bool pong = 1;
+}
+
+// ============================================================================
+// MESSAGES - Advanced (Proto3 Feature Testing)
+// ============================================================================
+
+// 1. All Scalar Types
+message AllScalarTypes {
+  double double_val = 1;
+  float float_val = 2;
+  int32 int32_val = 3;
+  int64 int64_val = 4;
+  uint32 uint32_val = 5;
+  uint64 uint64_val = 6;
+  sint32 sint32_val = 7;
+  sint64 sint64_val = 8;
+  fixed32 fixed32_val = 9;
+  fixed64 fixed64_val = 10;
+  sfixed32 sfixed32_val = 11;
+  sfixed64 sfixed64_val = 12;
+  bool bool_val = 13;
+  string string_val = 14;
+  bytes bytes_val = 15;
+}
+
+message GetAllScalarTypesRequest {
+  string id = 1;
+}
+
+// 2. Oneof
+message Notification {
+  string id = 1;
+  string title = 2;
+  oneof content {
+    EmailContent email = 3;
+    SmsContent sms = 4;
+    PushContent push = 5;
+  }
+}
+
+message EmailContent {
+  string subject = 1;
+  string body = 2;
+  repeated string recipients = 3;
+}
+
+message SmsContent {
+  string phone_number = 1;
+  string message = 2;
+}
+
+message PushContent {
+  string title = 1;
+  string body = 2;
+  map<string, string> data = 3;
+}
+
+message GetNotificationRequest {
+  string id = 1;
+}
+
+message SendNotificationRequest {
+  string title = 1;
+  oneof content {
+    EmailContent email = 2;
+    SmsContent sms = 3;
+    PushContent push = 4;
+  }
+}
+
+// 3. Optional Fields (proto3 optional)
+message UserPreferences {
+  string user_id = 1;
+  optional string nickname = 2;
+  optional int32 age = 3;
+  optional bool dark_mode = 4;
+  optional double latitude = 5;
+  optional double longitude = 6;
+}
+
+message GetUserPreferencesRequest {
+  string user_id = 1;
+}
+
+// 4. Deep Nesting (4 levels)
+message Company {
+  string id = 1;
+  string name = 2;
+  repeated Department departments = 3;
+}
+
+message Department {
+  string id = 1;
+  string name = 2;
+  repeated Team teams = 3;
+}
+
+message Team {
+  string id = 1;
+  string name = 2;
+  repeated Employee employees = 3;
+}
+
+message Employee {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+  EmployeeRole role = 4;
+}
+
+enum EmployeeRole {
+  EMPLOYEE_ROLE_UNSPECIFIED = 0;
+  EMPLOYEE_ROLE_MEMBER = 1;
+  EMPLOYEE_ROLE_LEAD = 2;
+  EMPLOYEE_ROLE_MANAGER = 3;
+}
+
+message GetCompanyRequest {
+  string id = 1;
+}
+
+// 5. Nested Enum (for advanced testing)
+message AdvancedOrder {
+  string id = 1;
+  Status status = 2;
+  PaymentInfo payment = 3;
+  double total_amount = 4;
+
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_PENDING = 1;
+    STATUS_CONFIRMED = 2;
+    STATUS_SHIPPED = 3;
+    STATUS_DELIVERED = 4;
+    STATUS_CANCELLED = 5;
+  }
+}
+
+message PaymentInfo {
+  string id = 1;
+  Method method = 2;
+  double amount = 3;
+  string currency = 4;
+
+  enum Method {
+    METHOD_UNSPECIFIED = 0;
+    METHOD_CREDIT_CARD = 1;
+    METHOD_DEBIT_CARD = 2;
+    METHOD_BANK_TRANSFER = 3;
+    METHOD_PAYPAL = 4;
+  }
+}
+
+message GetAdvancedOrderRequest {
+  string id = 1;
+}
+
+message ListAdvancedOrdersRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message ListAdvancedOrdersResponse {
+  repeated AdvancedOrder orders = 1;
+  int32 total = 2;
+  int32 page = 3;
+}
+
+// 6. Complex Map Types
+message Config {
+  string id = 1;
+  string name = 2;
+  map<string, string> string_map = 3;
+  map<string, int32> int_map = 4;
+  map<int32, string> reverse_map = 5;
+  map<string, NestedValue> object_map = 6;
+}
+
+message NestedValue {
+  string key = 1;
+  string value = 2;
+  int32 priority = 3;
+}
+
+message GetConfigRequest {
+  string id = 1;
+}
+
+// 7. Recursive Types
+
+// 7.1 Tree Structure
+message TreeNode {
+  string id = 1;
+  string name = 2;
+  NodeType type = 3;
+  repeated TreeNode children = 4;
+
+  enum NodeType {
+    NODE_TYPE_UNSPECIFIED = 0;
+    NODE_TYPE_FOLDER = 1;
+    NODE_TYPE_FILE = 2;
+  }
+}
+
+message GetTreeNodeRequest {
+  string id = 1;
+  int32 max_depth = 2;
+}
+
+// 7.2 Comment Thread (Recursive replies)
+message RecursiveComment {
+  string id = 1;
+  string author = 2;
+  string content = 3;
+  int64 created_at = 4;
+  int32 likes = 5;
+  repeated RecursiveComment replies = 6;
+}
+
+message GetCommentThreadRequest {
+  string id = 1;
+  int32 max_depth = 2;
+}
+
+// 7.3 Org Chart (Bidirectional reference)
+message OrgMember {
+  string id = 1;
+  string name = 2;
+  string title = 3;
+  OrgMember manager = 4;
+  repeated OrgMember direct_reports = 5;
+}
+
+message GetOrgChartRequest {
+  string id = 1;
+  bool include_reports = 2;
+}
+
+// 7.4 Linked List (Unidirectional)
+message LinkedNode {
+  string id = 1;
+  string value = 2;
+  LinkedNode next = 3;
+}
+
+message GetLinkedListRequest {
+  string id = 1;
+  int32 max_length = 2;
+}
+
+// 7.5 Graph Node (Indirect recursion)
+message GraphNode {
+  string id = 1;
+  string label = 2;
+  map<string, string> properties = 3;
+  repeated GraphEdge edges = 4;
+}
+
+message GraphEdge {
+  string id = 1;
+  string type = 2;
+  GraphNode target = 3;
+  double weight = 4;
+}
+
+message GetGraphRequest {
+  string id = 1;
+  int32 max_hops = 2;
+}
+
+// 8. Timestamp/Duration Simulation
+message Timestamp {
+  int64 seconds = 1;
+  int32 nanos = 2;
+}
+
+message Duration {
+  int64 seconds = 1;
+  int32 nanos = 2;
+}
+
+message Event {
+  string id = 1;
+  string name = 2;
+  Timestamp created_at = 3;
+  Timestamp updated_at = 4;
+  Duration duration = 5;
+}
+
+message GetEventRequest {
+  string id = 1;
+}
+
+message CreateEventRequest {
+  string name = 1;
+  Duration duration = 2;
 }
