@@ -83,8 +83,11 @@ jobs:
       - name: Prepare
         run: yarn dev:prepare
 
-      - name: Test
-        run: yarn test
+      - name: Test (Unit)
+        run: yarn test:unit
+
+      - name: Test (E2E)
+        run: yarn test:e2e
 
   publish:
     runs-on: ubuntu-latest

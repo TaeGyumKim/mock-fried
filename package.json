@@ -52,11 +52,13 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage",
     "test:unit": "vitest run --exclude 'test/e2e/**'",
     "test:e2e": "vitest run test/e2e/",
     "test:e2e:openapi": "vitest run test/e2e/playground-openapi.e2e.test.ts",
     "test:e2e:openapi-client": "vitest run test/e2e/playground-openapi-client.e2e.test.ts",
-    "test:e2e:proto": "vitest run test/e2e/playground-proto.e2e.test.ts",
+    "test:e2e:proto": "vitest run test/e2e/playground-proto.e2e.test.ts test/e2e/playground-proto-advanced.e2e.test.ts",
+    "test:e2e:proto-advanced": "vitest run test/e2e/playground-proto-advanced.e2e.test.ts",
     "test:types": "vue-tsc --noEmit && cd playground-openapi && vue-tsc --noEmit"
   },
   "dependencies": {
@@ -77,6 +79,7 @@
     "@nuxt/test-utils": "^3.21.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "latest",
+    "@vitest/coverage-v8": "^4.0.16",
     "changelogen": "^0.6.2",
     "eslint": "^9.39.2",
     "nuxt": "^4.2.2",
