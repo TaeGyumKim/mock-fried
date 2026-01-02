@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/TaeGyumKim/mock-fried/compare/v1.1.1...v1.1.2) (2026-01-02)
+
+
+### Bug Fixes
+
+* **openapi:** resolve $ref schemas in pagination responses ([9c403c6](https://github.com/TaeGyumKim/mock-fried/commit/9c403c67aa22313251984afe253984b80c2dc59d))
+
 ## [1.1.1](https://github.com/TaeGyumKim/mock-fried/compare/v1.1.0...v1.1.1) (2026-01-02)
 
 
