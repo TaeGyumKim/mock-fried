@@ -295,6 +295,59 @@ npm install mock-fried@1.0.4
 - Deterministic 데이터 생성
 - repeated 필드 자동 감지
 
+## Cursor Pagination 설정
+
+### 역방향 페이지네이션 (isBackward)
+
+Cursor 기반 페이지네이션에서 역방향 탐색을 지원합니다.
+
+#### 설정
+
+```typescript
+// nuxt.config.ts
+export default defineNuxtConfig({
+  mock: {
+    cursor: {
+      backwardParam: 'isBackward', // 기본값: 'isBackward'
+    },
+  },
+})
+```
+
+#### 우선순위 규칙
+
+1. **cursor 있음 + isBackward**: query param이 cursor 내부 direction을 오버라이드
+2. **cursor 없음 + isBackward=true**: 끝에서부터 시작 (역방향)
+3. **cursor 없음 + isBackward 없음**: 처음부터 시작 (정방향, 기본)
+
+#### 사용 예시
+
+```bash
+# 첫 페이지 역방향 (끝에서 시작)
+GET /mock/posts?limit=10&isBackward=true
+
+# cursor로 계속 탐색 (cursor 내부 direction 사용)
+GET /mock/posts?cursor=xxx&limit=10
+
+# cursor direction 오버라이드 (역방향으로 전환)
+GET /mock/posts?cursor=xxx&limit=10&isBackward=true
+
+# 커스텀 파라미터명 (config: backwardParam: 'reverse')
+GET /mock/posts?limit=10&reverse=true
+```
+
+#### RPC 지원
+
+Proto RPC에서는 request body에서 파라미터를 추출합니다:
+
+```typescript
+// camelCase
+{ cursor: 'xxx', limit: 10, isBackward: true }
+
+// snake_case
+{ cursor: 'xxx', limit: 10, is_backward: true }
+```
+
 ## 미구현 기능 (TODO)
 
 ### Proto RPC 확장
