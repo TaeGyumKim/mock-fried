@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.1](https://github.com/TaeGyumKim/mock-fried/compare/v1.3.0...v1.3.1) (2026-01-05)
+
+
+### Bug Fixes
+
+* correct listFieldName type from null to undefined ([3061556](https://github.com/TaeGyumKim/mock-fried/commit/30615567ec8fb0bb9d0a1d8a59ce54a68835c0ea))
+* remove explicit any type in refactored-utils.test.ts ([37ab1c0](https://github.com/TaeGyumKim/mock-fried/commit/37ab1c041045cb1cf7df19fe3f30927a320a08bb))
+
 ## [1.3.0](https://github.com/TaeGyumKim/mock-fried/compare/v1.2.1...v1.3.0) (2026-01-05)
 
 
