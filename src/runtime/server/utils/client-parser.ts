@@ -2,7 +2,7 @@
  * OpenAPI 생성 클라이언트 패키지 파서
  * TypeScript로 생성된 API 클라이언트에서 엔드포인트 및 모델 정보를 추출
  */
-/* eslint-disable regexp/no-super-linear-backtracking, regexp/optimal-quantifier-concatenation, regexp/no-unused-capturing-group */
+/* eslint-disable regexp/no-super-linear-backtracking, regexp/optimal-quantifier-concatenation */
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { resolve, join } from 'pathe'
 import type {
@@ -32,7 +32,8 @@ function parseApiFile(filePath: string, fileName: string): ParsedEndpoint[] {
   const rawMethodRegex = /\/\*\*([\s\S]*?)\*\/\s*\n\s*async\s+(\w+)Raw\([^)]*\):\s*Promise<runtime\.ApiResponse<((?:[^<>]|<[^>]*>)+)>>/g
 
   // 각 Raw 메서드의 본문에서 path, method 추출
-  // openapi-generator 형식: return new runtime.JSONApiResponse(...)
+  // openapi-generator 형식 1: return new runtime.JSONApiResponse(...)
+  // openapi-generator 형식 2: return new runtime.VoidApiResponse(...)
   const methodBodyRegex = /async\s+(\w+)Raw\([^)]*\)[^{]*\{([\s\S]*?)return new runtime\./g
 
   let match
@@ -67,22 +68,38 @@ function parseApiFile(filePath: string, fileName: string): ParsedEndpoint[] {
     const body = methodBodies.get(operationId)
     if (!body) continue
 
-    // path 추출 (openapi-generator 형식: let urlPath = `/users`)
-    const pathMatch = body.match(/let\s+urlPath\s*=\s*`([^`]+)`/)
-    if (!pathMatch?.[1]) continue
+    // path 추출 - 두 가지 형식 지원
+    // 형식 1 (구버전): let urlPath = `/users`
+    // 형식 2 (신버전): this.request({ path: `/users`, ... })
+    let path: string | undefined
 
-    let path: string = pathMatch[1]
-    // ${...} 형태를 {param} 형태로 변환 또는 제거
-    path = path.replace(/\$\{[^}]+\}/g, (match) => {
-      // requestParameters.id 또는 requestParameters["id"] 형태 -> path param
-      const paramName = match.match(/requestParameters(?:\.(\w+)|\["?(\w+)"?\])/)?.[1]
-        || match.match(/requestParameters(?:\.(\w+)|\["?(\w+)"?\])/)?.[2]
-      if (paramName) {
-        return `{${paramName}}`
+    // 형식 1: let urlPath = `...`
+    const urlPathMatch = body.match(/let\s+urlPath\s*=\s*`([^`]+)`/)
+    if (urlPathMatch?.[1]) {
+      path = urlPathMatch[1]
+      // ${...} 형태를 {param} 형태로 변환 또는 제거
+      path = path.replace(/\$\{[^}]+\}/g, (match) => {
+        const paramName = match.match(/requestParameters(?:\.(\w+)|\["?(\w+)"?\])/)?.[1]
+          || match.match(/requestParameters(?:\.(\w+)|\["?(\w+)"?\])/)?.[2]
+        if (paramName) {
+          return `{${paramName}}`
+        }
+        return ''
+      })
+    }
+
+    // 형식 2: this.request({ path: `...` }) - 신버전 openapi-generator
+    // path: `/before-after/posts` 또는 path: `/before-after/posts/{postId}`.replace(...)
+    if (!path) {
+      const requestPathMatch = body.match(/path:\s*`([^`]+)`/)
+      if (requestPathMatch?.[1]) {
+        path = requestPathMatch[1]
+        // {${"postId"}} 형태를 {postId}로 변환
+        path = path.replace(/\{\$\{["']?(\w+)["']?\}\}/g, '{$1}')
       }
-      // queryString, id 등 단순 변수는 제거 (path param이 아님)
-      return ''
-    })
+    }
+
+    if (!path) continue
 
     // method 추출
     // 형식 1: method: 'GET'
@@ -104,12 +121,15 @@ function parseApiFile(filePath: string, fileName: string): ParsedEndpoint[] {
       }
     }
 
-    // Query 파라미터 추출 (openapi-generator 형식: queryParameters['param'] = ...)
+    // Query 파라미터 추출
+    // 형식 1: if (requestParameters['param'] !== undefined) { queryParameters['param'] = ...
+    // 형식 2: if (requestParameters.param !== undefined) { queryParameters['param'] = ...
     const queryParams: ParsedParameter[] = []
-    const queryParamRegex = /if\s*\(requestParameters\[?['"]?(\w+)['"]?\]?\s*!==?\s*(?:undefined|null)\)\s*\{\s*queryParameters\[['"](\w+)['"]\]/g
+    const queryParamRegex = /if\s*\(requestParameters(?:\.(\w+)|\[['"](\w+)['"]\])\s*!==?\s*(?:undefined|null)\)\s*\{\s*queryParameters\[['"](\w+)['"]\]/g
     let qpm
     while ((qpm = queryParamRegex.exec(body)) !== null) {
-      const paramName = qpm[2]
+      // 캡처 그룹: [1] = dot notation, [2] = bracket notation, [3] = queryParameters key
+      const paramName = qpm[3] || qpm[1] || qpm[2]
       if (paramName) {
         queryParams.push({
           name: paramName,
