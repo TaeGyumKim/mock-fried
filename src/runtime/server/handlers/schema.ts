@@ -2,8 +2,7 @@ import { defineEventHandler, createError } from 'h3'
 import { useRuntimeConfig } from '#imports'
 import { consola } from 'consola'
 import { createRequire } from 'node:module'
-import { readFileSync, existsSync, statSync } from 'node:fs'
-import yaml from 'js-yaml'
+import { existsSync, statSync } from 'node:fs'
 import type {
   ApiSchema,
   OpenApiSchema,
@@ -20,6 +19,7 @@ import type {
 import { getClientPackage } from '../utils/client-parser'
 import { findProtoFiles, getProtoTypeName } from '../utils/proto-utils'
 import { cacheManager } from '../utils/cache-manager'
+import { loadSpec, getSchemaDefinitions, mergeParameters, type ParsedSpec } from '../utils/spec-loader'
 
 const logger = consola.withTag('mock-fried')
 
@@ -143,77 +143,41 @@ export function clearSchemaCache(): void {
 }
 
 /**
- * OpenAPI 스펙에서 스키마 메타데이터 추출
+ * OpenAPI 스펙에서 스키마 메타데이터 추출 (swagger-parser 사용)
+ * Swagger 2.0과 OpenAPI 3.x 모두 지원
  */
-function parseOpenApiSpec(specPath: string): OpenApiSchema | undefined {
+async function parseOpenApiSpec(specPath: string): Promise<OpenApiSchema | undefined> {
   if (!existsSync(specPath)) {
     return undefined
   }
 
   try {
-    const content = readFileSync(specPath, 'utf-8')
-    let spec: Record<string, unknown>
+    const { spec, version } = await loadSpec(specPath)
+    const info = spec.info || {}
 
-    if (specPath.endsWith('.yaml') || specPath.endsWith('.yml')) {
-      spec = yaml.load(content) as Record<string, unknown>
-    }
-    else {
-      spec = JSON.parse(content)
-    }
-
-    const info = spec.info as Record<string, unknown> || {}
-    const paths = spec.paths as Record<string, Record<string, unknown>> || {}
-
+    // 원본 스펙 사용 (dereferenced는 순환 참조 문제가 있을 수 있음)
+    const paths = (spec as ParsedSpec).paths || {}
     const pathItems: OpenApiPathItem[] = []
 
     for (const [path, pathItem] of Object.entries(paths)) {
-      // path-level params 추출
-      const pathLevelParams: OpenApiParameter[] = []
-      if (Array.isArray(pathItem.parameters)) {
-        for (const param of pathItem.parameters) {
-          const p = param as Record<string, unknown>
-          pathLevelParams.push({
-            name: p.name as string,
-            in: p.in as 'path' | 'query' | 'header' | 'cookie',
-            required: p.required as boolean | undefined,
-            description: p.description as string | undefined,
-            schema: p.schema as OpenApiParameter['schema'],
-          })
-        }
-      }
+      const pathObj = pathItem as Record<string, unknown>
 
-      for (const [method, operation] of Object.entries(pathItem)) {
+      // path-level params 추출
+      const pathLevelParams = extractParameters(pathObj.parameters as unknown[] | undefined)
+
+      for (const [method, operation] of Object.entries(pathObj)) {
         if (['get', 'post', 'put', 'delete', 'patch'].includes(method.toLowerCase())) {
           const op = operation as Record<string, unknown>
 
           // operation-level params 추출
-          const operationParams: OpenApiParameter[] = []
-          if (Array.isArray(op.parameters)) {
-            for (const param of op.parameters) {
-              const p = param as Record<string, unknown>
-              operationParams.push({
-                name: p.name as string,
-                in: p.in as 'path' | 'query' | 'header' | 'cookie',
-                required: p.required as boolean | undefined,
-                description: p.description as string | undefined,
-                schema: p.schema as OpenApiParameter['schema'],
-              })
-            }
-          }
+          const operationParams = extractParameters(op.parameters as unknown[] | undefined)
 
-          // path-level + operation-level params 병합 (operation이 우선)
-          const mergedParams = [...pathLevelParams]
-          for (const opParam of operationParams) {
-            const existingIndex = mergedParams.findIndex(
-              p => p.name === opParam.name && p.in === opParam.in,
-            )
-            if (existingIndex >= 0) {
-              mergedParams[existingIndex] = opParam // operation param이 덮어씀
-            }
-            else {
-              mergedParams.push(opParam)
-            }
-          }
+          // path-level + operation-level params 병합 (spec-loader의 mergeParameters 사용)
+          const mergedParams = mergeParameters(pathLevelParams, operationParams)
+
+          // requestBody/responses는 $ref만 포함하여 순환 참조 방지
+          const requestBody = extractRequestBodyRef(op.requestBody as Record<string, unknown> | undefined)
+          const responses = extractResponsesRef(op.responses as Record<string, unknown> | undefined)
 
           pathItems.push({
             path,
@@ -223,12 +187,16 @@ function parseOpenApiSpec(specPath: string): OpenApiSchema | undefined {
             description: op.description as string | undefined,
             tags: op.tags as string[] | undefined,
             parameters: mergedParams.length > 0 ? mergedParams : undefined,
-            requestBody: op.requestBody as OpenApiPathItem['requestBody'],
-            responses: op.responses as OpenApiPathItem['responses'],
+            requestBody,
+            responses,
           })
         }
       }
     }
+
+    // 스키마 수 계산 (버전에 따라 위치가 다름)
+    const schemas = getSchemaDefinitions(spec)
+    const schemaCount = Object.keys(schemas).length
 
     return {
       info: {
@@ -237,12 +205,113 @@ function parseOpenApiSpec(specPath: string): OpenApiSchema | undefined {
         description: info.description as string | undefined,
       },
       paths: pathItems,
+      _meta: {
+        source: 'spec-file',
+        specVersion: version, // 'swagger2' | 'openapi3'
+        schemaCount,
+        endpointCount: pathItems.length,
+      },
     }
   }
   catch (error) {
     logger.error('Failed to parse OpenAPI spec:', specPath, error)
     return undefined
   }
+}
+
+/**
+ * 파라미터 배열 추출 헬퍼
+ */
+function extractParameters(params: unknown[] | undefined): OpenApiParameter[] {
+  if (!Array.isArray(params)) return []
+
+  return params.map((param) => {
+    const p = param as Record<string, unknown>
+    return {
+      name: p.name as string,
+      in: p.in as 'path' | 'query' | 'header' | 'cookie',
+      required: p.required as boolean | undefined,
+      description: p.description as string | undefined,
+      schema: p.schema as OpenApiParameter['schema'],
+    }
+  })
+}
+
+/**
+ * requestBody에서 $ref만 추출 (순환 참조 방지)
+ */
+function extractRequestBodyRef(
+  requestBody: Record<string, unknown> | undefined,
+): OpenApiPathItem['requestBody'] {
+  if (!requestBody) return undefined
+
+  // OpenAPI 3.x: content.application/json.schema.$ref
+  const content = requestBody.content as Record<string, Record<string, unknown>> | undefined
+  if (content?.['application/json']?.schema) {
+    const schema = content['application/json'].schema as Record<string, unknown>
+    return {
+      content: {
+        'application/json': {
+          schema: schema.$ref ? { $ref: schema.$ref as string } : { type: 'object' },
+        },
+      },
+    }
+  }
+
+  // Swagger 2.0: body parameter의 schema
+  return undefined
+}
+
+/**
+ * responses에서 $ref만 추출 (순환 참조 방지)
+ */
+function extractResponsesRef(
+  responses: Record<string, unknown> | undefined,
+): OpenApiPathItem['responses'] {
+  if (!responses) return undefined
+
+  const result: Record<string, { description?: string, content?: Record<string, { schema: { $ref?: string, type?: string } }> }> = {}
+
+  for (const [code, response] of Object.entries(responses)) {
+    const res = response as Record<string, unknown>
+
+    // OpenAPI 3.x: content.application/json.schema
+    const content = res.content as Record<string, Record<string, unknown>> | undefined
+    if (content?.['application/json']?.schema) {
+      const schema = content['application/json'].schema as Record<string, unknown>
+      result[code] = {
+        description: res.description as string | undefined,
+        content: {
+          'application/json': {
+            schema: schema.$ref
+              ? { $ref: schema.$ref as string }
+              : { type: (schema.type as string) || 'object' },
+          },
+        },
+      }
+    }
+    // Swagger 2.0: schema 직접
+    else if (res.schema) {
+      const schema = res.schema as Record<string, unknown>
+      result[code] = {
+        description: res.description as string | undefined,
+        content: {
+          'application/json': {
+            schema: schema.$ref
+              ? { $ref: schema.$ref as string }
+              : { type: (schema.type as string) || 'object' },
+          },
+        },
+      }
+    }
+    else {
+      result[code] = {
+        description: res.description as string | undefined,
+      }
+    }
+  }
+
+  return result
 }
 
 /**
@@ -416,8 +485,8 @@ export default defineEventHandler(async () => {
     }
   }
   else if (mockConfig.openapiPath) {
-    // YAML/JSON spec 파일 방식
-    const openapi = parseOpenApiSpec(mockConfig.openapiPath)
+    // YAML/JSON spec 파일 방식 (Swagger 2.0 / OpenAPI 3.x 지원)
+    const openapi = await parseOpenApiSpec(mockConfig.openapiPath)
     if (openapi) {
       schema.openapi = openapi
     }

@@ -1,0 +1,1339 @@
+swagger: "2.0"
+info:
+  title: Mock-Fried Sample API (Swagger 2.0)
+  description: Comprehensive sample API for testing mock-fried module with Swagger 2.0
+  version: 1.0.0
+
+host: localhost:3000
+basePath: /mock
+schemes:
+  - http
+
+consumes:
+  - application/json
+produces:
+  - application/json
+
+paths:
+  # ============================================
+  # Users API - CRUD with page-based pagination
+  # ============================================
+  /users:
+    get:
+      operationId: getUsers
+      summary: List all users
+      tags: [Users]
+      parameters:
+        - name: page
+          in: query
+          type: integer
+          default: 1
+        - name: limit
+          in: query
+          type: integer
+          default: 20
+        - name: status
+          in: query
+          type: string
+          enum: [active, inactive, suspended]
+        - name: role
+          in: query
+          type: string
+          enum: [admin, user, guest]
+        - name: search
+          in: query
+          type: string
+      responses:
+        200:
+          description: List of users with pagination
+          schema:
+            $ref: '#/definitions/UserListResponse'
+
+    post:
+      operationId: createUser
+      summary: Create a new user
+      tags: [Users]
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateUserRequest'
+      responses:
+        201:
+          description: Created user
+          schema:
+            $ref: '#/definitions/User'
+
+  /users/{id}:
+    get:
+      operationId: getUserById
+      summary: Get user by ID
+      tags: [Users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: string
+      responses:
+        200:
+          description: User details
+          schema:
+            $ref: '#/definitions/User'
+
+    put:
+      operationId: updateUser
+      summary: Update user
+      tags: [Users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/UpdateUserRequest'
+      responses:
+        200:
+          description: Updated user
+          schema:
+            $ref: '#/definitions/User'
+
+    delete:
+      operationId: deleteUser
+      summary: Delete user
+      tags: [Users]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: string
+      responses:
+        204:
+          description: User deleted
+
+  # ============================================
+  # Products API - CRUD with page-based pagination
+  # ============================================
+  /products:
+    get:
+      operationId: getProducts
+      summary: List all products
+      tags: [Products]
+      parameters:
+        - name: page
+          in: query
+          type: integer
+          default: 1
+        - name: limit
+          in: query
+          type: integer
+          default: 20
+        - name: category
+          in: query
+          type: string
+          enum: [electronics, clothing, food, books, other]
+        - name: minPrice
+          in: query
+          type: number
+        - name: maxPrice
+          in: query
+          type: number
+      responses:
+        200:
+          description: List of products
+          schema:
+            $ref: '#/definitions/ProductListResponse'
+
+    post:
+      operationId: createProduct
+      summary: Create a new product
+      tags: [Products]
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateProductRequest'
+      responses:
+        201:
+          description: Created product
+          schema:
+            $ref: '#/definitions/Product'
+
+  /products/{id}:
+    get:
+      operationId: getProductById
+      summary: Get product by ID
+      tags: [Products]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: string
+      responses:
+        200:
+          description: Product details
+          schema:
+            $ref: '#/definitions/Product'
+
+  # ============================================
+  # Orders API - CRUD with page-based pagination
+  # ============================================
+  /orders:
+    get:
+      operationId: getOrders
+      summary: List all orders
+      tags: [Orders]
+      parameters:
+        - name: page
+          in: query
+          type: integer
+          default: 1
+        - name: limit
+          in: query
+          type: integer
+          default: 20
+        - name: status
+          in: query
+          type: string
+          enum: [pending, processing, shipped, delivered, cancelled]
+        - name: userId
+          in: query
+          type: string
+      responses:
+        200:
+          description: List of orders
+          schema:
+            $ref: '#/definitions/OrderListResponse'
+
+    post:
+      operationId: createOrder
+      summary: Create a new order
+      tags: [Orders]
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateOrderRequest'
+      responses:
+        201:
+          description: Created order
+          schema:
+            $ref: '#/definitions/Order'
+
+  /orders/{id}:
+    get:
+      operationId: getOrderById
+      summary: Get order by ID
+      tags: [Orders]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: string
+      responses:
+        200:
+          description: Order details
+          schema:
+            $ref: '#/definitions/Order'
+
+  # ============================================
+  # Posts API - Cursor-based pagination
+  # ============================================
+  /posts:
+    get:
+      operationId: getPosts
+      summary: List posts with cursor pagination
+      tags: [Posts]
+      parameters:
+        - name: cursor
+          in: query
+          type: string
+          description: Cursor for pagination
+        - name: limit
+          in: query
+          type: integer
+          default: 20
+        - name: authorId
+          in: query
+          type: string
+      responses:
+        200:
+          description: List of posts with cursor
+          schema:
+            $ref: '#/definitions/PostListResponse'
+
+    post:
+      operationId: createPost
+      summary: Create a new post
+      tags: [Posts]
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreatePostRequest'
+      responses:
+        201:
+          description: Created post
+          schema:
+            $ref: '#/definitions/Post'
+
+  /posts/{id}:
+    get:
+      operationId: getPostById
+      summary: Get post by ID
+      tags: [Posts]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: string
+      responses:
+        200:
+          description: Post details
+          schema:
+            $ref: '#/definitions/Post'
+
+  # ============================================
+  # Comments API - Nested resource
+  # ============================================
+  /posts/{postId}/comments:
+    get:
+      operationId: getComments
+      summary: Get comments for a post
+      tags: [Comments]
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          type: string
+        - name: limit
+          in: query
+          type: integer
+          default: 20
+      responses:
+        200:
+          description: List of comments
+          schema:
+            $ref: '#/definitions/CommentListResponse'
+
+    post:
+      operationId: createComment
+      summary: Create a comment on a post
+      tags: [Comments]
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateCommentRequest'
+      responses:
+        201:
+          description: Created comment
+          schema:
+            $ref: '#/definitions/Comment'
+
+  # ============================================
+  # Health API - Simple endpoints
+  # ============================================
+  /health:
+    get:
+      operationId: getHealth
+      summary: Health check
+      tags: [Health]
+      responses:
+        200:
+          description: Health status
+          schema:
+            $ref: '#/definitions/HealthResponse'
+
+  /version:
+    get:
+      operationId: getVersion
+      summary: Get API version
+      tags: [Health]
+      responses:
+        200:
+          description: Version info
+          schema:
+            $ref: '#/definitions/VersionResponse'
+
+  /ping:
+    get:
+      operationId: ping
+      summary: Ping endpoint
+      tags: [Health]
+      responses:
+        200:
+          description: Pong response
+          schema:
+            type: object
+            properties:
+              pong:
+                type: boolean
+                example: true
+
+  /tags:
+    get:
+      operationId: getTags
+      summary: Get available tags
+      tags: [Health]
+      responses:
+        200:
+          description: List of tags
+          schema:
+            type: array
+            items:
+              type: string
+
+  # ============================================
+  # Edge Cases - Primitive Response Types
+  # ============================================
+  /stats/count:
+    get:
+      operationId: getTotalCount
+      summary: Get total item count (number response)
+      tags: [EdgeCases]
+      responses:
+        200:
+          description: Total count as number
+          schema:
+            type: integer
+
+  /stats/status:
+    get:
+      operationId: getSystemStatus
+      summary: Get system status (string response)
+      tags: [EdgeCases]
+      responses:
+        200:
+          description: Status string
+          schema:
+            type: string
+            enum: [healthy, degraded, critical]
+
+  /stats/enabled:
+    get:
+      operationId: isFeatureEnabled
+      summary: Check if feature is enabled (boolean response)
+      tags: [EdgeCases]
+      responses:
+        200:
+          description: Boolean flag
+          schema:
+            type: boolean
+
+  # ============================================
+  # Edge Cases - Multiple Path Parameters
+  # ============================================
+  /categories/{categoryId}/products/{productId}:
+    get:
+      operationId: getCategoryProduct
+      summary: Get product within category
+      tags: [EdgeCases]
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          type: string
+        - name: productId
+          in: path
+          required: true
+          type: string
+      responses:
+        200:
+          description: Product in category
+          schema:
+            $ref: '#/definitions/Product'
+
+  /users/{userId}/orders/{orderId}/items/{itemId}:
+    get:
+      operationId: getOrderItem
+      summary: Get specific item in user's order (3 path params)
+      tags: [EdgeCases]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          type: string
+        - name: orderId
+          in: path
+          required: true
+          type: string
+        - name: itemId
+          in: path
+          required: true
+          type: string
+      responses:
+        200:
+          description: Order item
+          schema:
+            $ref: '#/definitions/OrderItem'
+
+  # ============================================
+  # Edge Cases - Direct Array Response (no wrapper)
+  # ============================================
+  /featured/products:
+    get:
+      operationId: getFeaturedProducts
+      summary: Get featured products (direct array)
+      tags: [EdgeCases]
+      responses:
+        200:
+          description: Array of products without pagination
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Product'
+
+  /search/suggestions:
+    get:
+      operationId: getSearchSuggestions
+      summary: Get search suggestions (string array)
+      tags: [EdgeCases]
+      parameters:
+        - name: q
+          in: query
+          required: true
+          type: string
+      responses:
+        200:
+          description: Array of suggestion strings
+          schema:
+            type: array
+            items:
+              type: string
+
+  # ============================================
+  # Edge Cases - Nullable & Optional Fields
+  # ============================================
+  /profiles/{id}:
+    get:
+      operationId: getProfile
+      summary: Get user profile with nullable fields
+      tags: [EdgeCases]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: string
+      responses:
+        200:
+          description: User profile
+          schema:
+            $ref: '#/definitions/UserProfile'
+
+  # ============================================
+  # Edge Cases - Schema Composition (allOf)
+  # ============================================
+  /admin/users/{id}:
+    get:
+      operationId: getAdminUser
+      summary: Get user with admin details (allOf composition)
+      tags: [EdgeCases]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: string
+      responses:
+        200:
+          description: Admin user details
+          schema:
+            $ref: '#/definitions/AdminUser'
+
+  # ============================================
+  # Edge Cases - Deeply Nested Objects
+  # ============================================
+  /reports/{id}:
+    get:
+      operationId: getReport
+      summary: Get detailed report with nested structure
+      tags: [EdgeCases]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: string
+      responses:
+        200:
+          description: Report with nested data
+          schema:
+            $ref: '#/definitions/Report'
+
+  # ============================================
+  # Edge Cases - Self-Referencing (Recursive)
+  # ============================================
+  /categories/{id}/tree:
+    get:
+      operationId: getCategoryTree
+      summary: Get category tree (recursive structure)
+      tags: [EdgeCases]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: string
+      responses:
+        200:
+          description: Category with children (recursive)
+          schema:
+            $ref: '#/definitions/CategoryNode'
+
+  # ============================================
+  # Edge Cases - Various Numeric Types
+  # ============================================
+  /analytics/metrics:
+    get:
+      operationId: getMetrics
+      summary: Get metrics with various numeric types
+      tags: [EdgeCases]
+      responses:
+        200:
+          description: Metrics data
+          schema:
+            $ref: '#/definitions/Metrics'
+
+  # ============================================
+  # Edge Cases - Date Formats
+  # ============================================
+  /events/{id}:
+    get:
+      operationId: getEvent
+      summary: Get event with various date formats
+      tags: [EdgeCases]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: string
+      responses:
+        200:
+          description: Event details
+          schema:
+            $ref: '#/definitions/Event'
+
+  # ============================================
+  # Edge Cases - Min/Max Constraints
+  # ============================================
+  /settings:
+    get:
+      operationId: getSettings
+      summary: Get settings with min/max constraints
+      tags: [EdgeCases]
+      responses:
+        200:
+          description: Settings with constraints
+          schema:
+            $ref: '#/definitions/Settings'
+
+    put:
+      operationId: updateSettings
+      summary: Update settings
+      tags: [EdgeCases]
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/Settings'
+      responses:
+        200:
+          description: Updated settings
+          schema:
+            $ref: '#/definitions/Settings'
+
+  # ============================================
+  # Edge Cases - Map/Dictionary Types
+  # ============================================
+  /config:
+    get:
+      operationId: getConfig
+      summary: Get configuration (additionalProperties)
+      tags: [EdgeCases]
+      responses:
+        200:
+          description: Configuration map
+          schema:
+            $ref: '#/definitions/ConfigMap'
+
+  # ============================================
+  # Edge Cases - Empty Body Operations
+  # ============================================
+  /cache:
+    delete:
+      operationId: clearCache
+      summary: Clear cache (204 No Content)
+      tags: [EdgeCases]
+      responses:
+        204:
+          description: Cache cleared
+
+  /sessions/{id}:
+    delete:
+      operationId: deleteSession
+      summary: Delete session (204 No Content)
+      tags: [EdgeCases]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: string
+      responses:
+        204:
+          description: Session deleted
+
+definitions:
+  # ============================================
+  # User Models
+  # ============================================
+  User:
+    type: object
+    required: [id, username, email, role, status, createdAt]
+    properties:
+      id:
+        type: string
+      username:
+        type: string
+      email:
+        type: string
+        format: email
+      name:
+        type: string
+      avatarUrl:
+        type: string
+        format: uri
+      role:
+        type: string
+        enum: [admin, user, guest]
+      status:
+        type: string
+        enum: [active, inactive, suspended]
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time
+
+  UserListResponse:
+    type: object
+    required: [items, pagination]
+    properties:
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/User'
+      pagination:
+        $ref: '#/definitions/PaginationMeta'
+
+  CreateUserRequest:
+    type: object
+    required: [username, email]
+    properties:
+      username:
+        type: string
+      email:
+        type: string
+        format: email
+      name:
+        type: string
+      role:
+        type: string
+        enum: [admin, user, guest]
+
+  UpdateUserRequest:
+    type: object
+    properties:
+      username:
+        type: string
+      email:
+        type: string
+        format: email
+      name:
+        type: string
+      role:
+        type: string
+        enum: [admin, user, guest]
+      status:
+        type: string
+        enum: [active, inactive, suspended]
+
+  # ============================================
+  # Product Models
+  # ============================================
+  Product:
+    type: object
+    required: [id, name, price, category, createdAt]
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      description:
+        type: string
+      price:
+        type: number
+        format: float
+      currency:
+        type: string
+        default: USD
+      category:
+        type: string
+        enum: [electronics, clothing, food, books, other]
+      imageUrl:
+        type: string
+        format: uri
+      inStock:
+        type: boolean
+        default: true
+      stockCount:
+        type: integer
+      variants:
+        type: array
+        items:
+          $ref: '#/definitions/ProductVariant'
+      createdAt:
+        type: string
+        format: date-time
+
+  ProductVariant:
+    type: object
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      price:
+        type: number
+      sku:
+        type: string
+
+  ProductListResponse:
+    type: object
+    required: [items, pagination]
+    properties:
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/Product'
+      pagination:
+        $ref: '#/definitions/PaginationMeta'
+
+  CreateProductRequest:
+    type: object
+    required: [name, price, category]
+    properties:
+      name:
+        type: string
+      description:
+        type: string
+      price:
+        type: number
+      category:
+        type: string
+        enum: [electronics, clothing, food, books, other]
+
+  # ============================================
+  # Order Models
+  # ============================================
+  Order:
+    type: object
+    required: [id, userId, status, items, total, createdAt]
+    properties:
+      id:
+        type: string
+      userId:
+        type: string
+      status:
+        type: string
+        enum: [pending, processing, shipped, delivered, cancelled]
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/OrderItem'
+      total:
+        type: number
+      currency:
+        type: string
+        default: USD
+      shippingAddress:
+        type: string
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time
+
+  OrderItem:
+    type: object
+    required: [productId, quantity, price]
+    properties:
+      productId:
+        type: string
+      productName:
+        type: string
+      quantity:
+        type: integer
+      price:
+        type: number
+
+  OrderListResponse:
+    type: object
+    required: [items, pagination]
+    properties:
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/Order'
+      pagination:
+        $ref: '#/definitions/PaginationMeta'
+
+  CreateOrderRequest:
+    type: object
+    required: [items]
+    properties:
+      items:
+        type: array
+        items:
+          type: object
+          required: [productId, quantity]
+          properties:
+            productId:
+              type: string
+            quantity:
+              type: integer
+      shippingAddress:
+        type: string
+
+  # ============================================
+  # Post Models (Cursor pagination)
+  # ============================================
+  Post:
+    type: object
+    required: [id, title, content, authorId, createdAt]
+    properties:
+      id:
+        type: string
+      title:
+        type: string
+      content:
+        type: string
+      authorId:
+        type: string
+      authorName:
+        type: string
+      tags:
+        type: array
+        items:
+          type: string
+      viewCount:
+        type: integer
+      likeCount:
+        type: integer
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time
+
+  PostListResponse:
+    type: object
+    required: [items]
+    properties:
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/Post'
+      nextCursor:
+        type: string
+      prevCursor:
+        type: string
+      hasMore:
+        type: boolean
+      hasPrev:
+        type: boolean
+
+  CreatePostRequest:
+    type: object
+    required: [title, content]
+    properties:
+      title:
+        type: string
+      content:
+        type: string
+      tags:
+        type: array
+        items:
+          type: string
+
+  # ============================================
+  # Comment Models
+  # ============================================
+  Comment:
+    type: object
+    required: [id, postId, authorId, content, createdAt]
+    properties:
+      id:
+        type: string
+      postId:
+        type: string
+      authorId:
+        type: string
+      authorName:
+        type: string
+      content:
+        type: string
+      createdAt:
+        type: string
+        format: date-time
+
+  CommentListResponse:
+    type: object
+    required: [items]
+    properties:
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/Comment'
+      total:
+        type: integer
+
+  CreateCommentRequest:
+    type: object
+    required: [content]
+    properties:
+      content:
+        type: string
+
+  # ============================================
+  # Common Models
+  # ============================================
+  PaginationMeta:
+    type: object
+    required: [page, limit, total, totalPages]
+    properties:
+      page:
+        type: integer
+      limit:
+        type: integer
+      total:
+        type: integer
+      totalPages:
+        type: integer
+
+  HealthResponse:
+    type: object
+    properties:
+      status:
+        type: string
+        enum: [ok, degraded, down]
+      timestamp:
+        type: string
+        format: date-time
+      uptime:
+        type: integer
+        description: Uptime in seconds
+
+  VersionResponse:
+    type: object
+    properties:
+      version:
+        type: string
+      buildDate:
+        type: string
+        format: date-time
+      gitCommit:
+        type: string
+
+  ErrorResponse:
+    type: object
+    required: [error, message]
+    properties:
+      error:
+        type: string
+      message:
+        type: string
+      details:
+        type: object
+
+  # ============================================
+  # Edge Case Models - Nullable Fields
+  # ============================================
+  UserProfile:
+    type: object
+    required: [id, username]
+    properties:
+      id:
+        type: string
+      username:
+        type: string
+      bio:
+        type: string
+        x-nullable: true
+      website:
+        type: string
+        format: uri
+        x-nullable: true
+      location:
+        type: string
+        x-nullable: true
+      birthDate:
+        type: string
+        format: date
+        x-nullable: true
+      socialLinks:
+        type: object
+        x-nullable: true
+        properties:
+          twitter:
+            type: string
+          github:
+            type: string
+          linkedin:
+            type: string
+
+  # ============================================
+  # Edge Case Models - Schema Composition (allOf)
+  # ============================================
+  AdminUser:
+    allOf:
+      - $ref: '#/definitions/User'
+      - type: object
+        properties:
+          permissions:
+            type: array
+            items:
+              type: string
+          lastLoginIp:
+            type: string
+          loginCount:
+            type: integer
+          isSuperAdmin:
+            type: boolean
+
+  # ============================================
+  # Edge Case Models - Deeply Nested
+  # ============================================
+  Report:
+    type: object
+    required: [id, title, metadata, sections]
+    properties:
+      id:
+        type: string
+      title:
+        type: string
+      metadata:
+        type: object
+        properties:
+          author:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              department:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  organization:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+          createdAt:
+            type: string
+            format: date-time
+          version:
+            type: integer
+      sections:
+        type: array
+        items:
+          type: object
+          properties:
+            id:
+              type: string
+            title:
+              type: string
+            content:
+              type: string
+            subsections:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  title:
+                    type: string
+                  content:
+                    type: string
+
+  # ============================================
+  # Edge Case Models - Self-Referencing (Recursive)
+  # ============================================
+  CategoryNode:
+    type: object
+    required: [id, name]
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      description:
+        type: string
+      parentId:
+        type: string
+        x-nullable: true
+      children:
+        type: array
+        items:
+          $ref: '#/definitions/CategoryNode'
+      productCount:
+        type: integer
+
+  # ============================================
+  # Edge Case Models - Various Numeric Types
+  # ============================================
+  Metrics:
+    type: object
+    properties:
+      # Integer types
+      totalUsers:
+        type: integer
+        format: int32
+      totalRequests:
+        type: integer
+        format: int64
+      activeConnections:
+        type: integer
+      # Float types
+      cpuUsage:
+        type: number
+        format: float
+      memoryUsage:
+        type: number
+        format: double
+      # Number with constraints
+      errorRate:
+        type: number
+        minimum: 0
+        maximum: 100
+      latencyMs:
+        type: number
+        minimum: 0
+      throughput:
+        type: number
+        format: double
+
+  # ============================================
+  # Edge Case Models - Date Formats
+  # ============================================
+  Event:
+    type: object
+    required: [id, name, eventDate, startTime]
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      description:
+        type: string
+      # date only (YYYY-MM-DD)
+      eventDate:
+        type: string
+        format: date
+      # date-time (ISO 8601)
+      startTime:
+        type: string
+        format: date-time
+      endTime:
+        type: string
+        format: date-time
+      # Custom time format
+      duration:
+        type: string
+        description: Duration in ISO 8601 format (e.g., PT2H30M)
+      timezone:
+        type: string
+      createdAt:
+        type: string
+        format: date-time
+      updatedAt:
+        type: string
+        format: date-time
+
+  # ============================================
+  # Edge Case Models - Min/Max Constraints
+  # ============================================
+  Settings:
+    type: object
+    properties:
+      # String with length constraints
+      displayName:
+        type: string
+        minLength: 1
+        maxLength: 50
+      # Number with range
+      volume:
+        type: integer
+        minimum: 0
+        maximum: 100
+        default: 50
+      brightness:
+        type: number
+        minimum: 0.0
+        maximum: 1.0
+        default: 0.8
+      # Array with size constraints
+      favoriteColors:
+        type: array
+        items:
+          type: string
+        minItems: 1
+        maxItems: 5
+      # String with pattern
+      phoneNumber:
+        type: string
+        pattern: '^\+?[1-9]\d{1,14}$'
+      # Enum with default
+      theme:
+        type: string
+        enum: [light, dark, system]
+        default: system
+      language:
+        type: string
+        enum: [ko, en, ja, zh]
+        default: ko
+      notificationsEnabled:
+        type: boolean
+        default: true
+
+  # ============================================
+  # Edge Case Models - Map/Dictionary
+  # ============================================
+  ConfigMap:
+    type: object
+    additionalProperties:
+      type: string
+    example:
+      apiUrl: "https://api.example.com"
+      debugMode: "true"
+      maxRetries: "3"

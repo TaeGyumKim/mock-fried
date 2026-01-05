@@ -362,12 +362,15 @@ export interface OpenApiSchema {
     description?: string
   }
   paths: OpenApiPathItem[]
-  /** Client package 방식 사용 시 추가 메타데이터 */
+  /** 추가 메타데이터 */
   _meta?: {
     source: 'client-package' | 'spec-file'
+    /** Swagger 2.0 또는 OpenAPI 3.x 버전 (spec-file 모드) */
+    specVersion?: 'swagger2' | 'openapi3'
     package?: string
     apiClasses?: string[]
     modelCount?: number
+    schemaCount?: number
     endpointCount?: number
   }
 }

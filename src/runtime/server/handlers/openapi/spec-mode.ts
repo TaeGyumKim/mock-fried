@@ -1,9 +1,8 @@
 /**
  * OpenAPI Spec File Mode Handler
  * Handles mock responses based on OpenAPI YAML/JSON spec files
+ * Supports both Swagger 2.0 and OpenAPI 3.x
  */
-import { readFileSync } from 'node:fs'
-import yaml from 'js-yaml'
 import {
   generateMockFromSchema,
   hashString,
@@ -17,18 +16,30 @@ import {
 } from '../../utils/mock/providers'
 import { cacheManager, type OpenAPISpec } from '../../utils/cache-manager'
 import { getOrCreateCursorManager, getOrCreatePageManager } from '../../utils/pagination-factory'
+import { loadSpec, getSchemaDefinitions, type SpecLoaderResult } from '../../utils/spec-loader'
 
 /**
- * OpenAPI 스펙 파일 로드
+ * 캐시된 스펙 로드 결과 가져오기
+ * @internal
  */
-export function loadOpenAPISpec(specPath: string): OpenAPISpec {
-  const content = readFileSync(specPath, 'utf-8')
+async function getCachedSpecLoader(specPath: string): Promise<SpecLoaderResult> {
+  const cache = cacheManager.specMode
 
-  if (specPath.endsWith('.yaml') || specPath.endsWith('.yml')) {
-    return yaml.load(content) as OpenAPISpec
+  // 캐시된 결과 반환
+  if (cache.specLoader && cache.specPath === specPath) {
+    return cache.specLoader
   }
 
-  return JSON.parse(content) as OpenAPISpec
+  // 새로 로드 (swagger-parser 사용)
+  const result = await loadSpec(specPath)
+
+  // 캐시 업데이트
+  cache.specLoader = result
+  cache.specPath = specPath
+
+  console.log(`[mock-fried] Loaded ${result.version} spec: ${specPath}`)
+
+  return result
 }
 
 /**
@@ -46,6 +57,7 @@ export function resolveSchemaRef(
 
 /**
  * OpenAPI Backend 인스턴스 가져오기 (캐싱 포함)
+ * Swagger 2.0과 OpenAPI 3.x 모두 지원
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function getOpenAPIBackend(specPath: string): Promise<any> {
@@ -56,15 +68,18 @@ export async function getOpenAPIBackend(specPath: string): Promise<any> {
   }
 
   const { OpenAPIBackend } = await import('openapi-backend')
-  const definition = loadOpenAPISpec(specPath)
 
-  // 스키마 컨텍스트용 캐시
-  cache.spec = definition
+  // swagger-parser로 스펙 로드 (Swagger 2.0 → OpenAPI 3.0 변환 포함)
+  const { spec, openapi3Spec } = await getCachedSpecLoader(specPath)
+
+  // 스키마 컨텍스트용 캐시 (원본 스펙)
+  cache.spec = spec as OpenAPISpec
 
   const apiInstance = new OpenAPIBackend({
+    // OpenAPI 3.0 스펙 전달 (Swagger 2.0도 변환되어 사용)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    definition: definition as any,
-    quick: false, // $ref 역참조를 위해 false로 설정
+    definition: openapi3Spec as any,
+    quick: true, // 이미 OpenAPI 3.0으로 변환됨
     validate: false, // Mock 서버에서는 request validation 비활성화
   })
 

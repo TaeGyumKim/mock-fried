@@ -10,6 +10,7 @@ import type { SchemaMockGenerator } from './mock'
 import type { CursorPaginationManager, PagePaginationManager } from './mock/pagination'
 import type * as protoLoader from '@grpc/proto-loader'
 import type * as grpc from '@grpc/grpc-js'
+import type { SpecLoaderResult } from './spec-loader'
 
 /**
  * OpenAPI 스펙 인터페이스
@@ -40,6 +41,8 @@ interface SpecModeCache {
   apiInstance: any
   specPath: string | null
   spec: OpenAPISpec | null
+  /** swagger-parser로 로드된 스펙 결과 (Swagger 2.0 지원) */
+  specLoader: SpecLoaderResult | null
   cursorManager: CursorPaginationManager<Record<string, unknown>> | null
   pageManager: PagePaginationManager<Record<string, unknown>> | null
   backwardParam: string
@@ -82,6 +85,7 @@ class MockCacheManager {
     apiInstance: null,
     specPath: null,
     spec: null,
+    specLoader: null,
     cursorManager: null,
     pageManager: null,
     backwardParam: 'isBackward',
@@ -135,6 +139,7 @@ class MockCacheManager {
     this._specMode.apiInstance = null
     this._specMode.specPath = null
     this._specMode.spec = null
+    this._specMode.specLoader = null
     this._specMode.cursorManager = null
     this._specMode.pageManager = null
     this._specMode.backwardParam = 'isBackward'

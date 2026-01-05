@@ -2,7 +2,7 @@
 
 ## 프로젝트 개요
 
-Nuxt 3 Mock API 모듈 - OpenAPI 및 Protobuf RPC Mock 서버
+Nuxt 3 Mock API 모듈 - OpenAPI (3.x & Swagger 2.0) 및 Protobuf RPC Mock 서버
 
 ## 기술 스택
 
@@ -53,10 +53,12 @@ mock-fried/
 │               │       └── proto-item-provider.ts   # Proto Mode
 │               └── client-parser.ts  # TS 클라이언트 패키지 파서
 ├── packages/                  # 샘플 패키지 (CI + Playground 공용)
-│   ├── sample-openapi/        # OpenAPI 스펙 파일 (Spec File Mode 테스트)
+│   ├── sample-openapi/        # OpenAPI 3.x 스펙 파일 (Spec File Mode 테스트)
+│   ├── sample-swagger/        # Swagger 2.0 스펙 파일 (Swagger 지원 테스트)
 │   ├── openapi-client/        # openapi-generator 출력 (Client Package Mode 테스트)
 │   └── sample-proto/          # Proto 파일 샘플 (UserService, ProductService)
-├── playground-openapi/        # Spec File Mode 테스트 환경 ($fetch 직접 사용)
+├── playground-openapi/        # OpenAPI 3.x Spec File Mode 테스트 환경
+├── playground-swagger/        # Swagger 2.0 Spec File Mode 테스트 환경
 ├── playground-openapi-client/ # Client Package Mode 테스트 환경 (생성된 클라이언트 사용)
 ├── playground-proto/          # Proto 테스트 환경
 └── test/                      # E2E 테스트
@@ -83,6 +85,7 @@ mock-fried/
 | `proto-utils.ts` | Proto 유틸 (PROTO_TYPE_MAP, findProtoFiles, getProtoTypeName) |
 | `cache-manager.ts` | 캐시 중앙 관리 (MockCacheManager 싱글톤) |
 | `pagination-factory.ts` | Pagination Manager 팩토리 함수 |
+| `spec-loader.ts` | OpenAPI/Swagger 스펙 로딩 (버전 감지, 변환, $ref dereference) |
 
 ### Mock 유틸 (src/runtime/server/utils/mock/)
 
@@ -117,7 +120,8 @@ mock-fried/
 yarn install                # 의존성 설치
 yarn dev:prepare            # 타입 스텁 생성 (CI용)
 yarn dev:prepare:playground # 모든 playground 준비 (로컬용)
-yarn dev:openapi            # Spec File Mode playground 실행
+yarn dev:openapi            # OpenAPI 3.x Spec File Mode playground 실행
+yarn dev:swagger            # Swagger 2.0 Spec File Mode playground 실행
 yarn dev:openapi-client     # Client Package Mode playground 실행
 yarn dev:proto              # Proto playground 실행
 yarn lint                   # ESLint 검사
@@ -247,12 +251,14 @@ npm install mock-fried@1.0.4
 
 | 패키지 | 용도 | 내용 |
 |--------|------|------|
-| `@mock-fried/sample-openapi` | Spec File Mode 테스트 | openapi.yaml (7 API 그룹, 43개 엔드포인트) |
+| `@mock-fried/sample-openapi` | OpenAPI 3.x Spec File Mode 테스트 | openapi.yaml (7 API 그룹, 43개 엔드포인트) |
+| `@mock-fried/sample-swagger` | Swagger 2.0 Spec File Mode 테스트 | swagger.yaml (6 API 그룹, 40개 엔드포인트) |
 | `@mock-fried/openapi-client` | Client Package Mode 테스트 | openapi-generator 출력 (동일 스펙 기반) |
 | `@mock-fried/sample-proto` | Proto RPC 테스트용 | example.proto (7 서비스, 37 메서드) |
 
 **Mock 모드 설명**:
-- **Spec File Mode**: OpenAPI YAML/JSON 파일에서 직접 Mock 엔드포인트 생성
+
+- **Spec File Mode**: OpenAPI 3.x 또는 Swagger 2.0 YAML/JSON 파일에서 직접 Mock 엔드포인트 생성
 - **Client Package Mode**: openapi-generator 출력 패키지를 파싱하여 Mock 엔드포인트 생성
 
 ### Proto RPC 서비스 구성 (sample-proto)
@@ -303,6 +309,7 @@ npm install mock-fried@1.0.4
 - Deterministic 데이터 생성
 - Client Package / Spec File 모드
 - Generic 타입, JSON 키 매핑
+- **Swagger 2.0 지원** (자동 OpenAPI 3.0 변환)
 
 ### Protobuf RPC Mock (✅ Production Ready)
 
@@ -409,6 +416,16 @@ Proto RPC에서는 request body에서 파라미터를 추출합니다:
 **문제**: 페이지네이션 응답의 items가 `$ref`로 참조된 경우 ID 필드 감지 및 Mock 생성 실패
 **해결**: `resolveSchemaRef` 헬퍼 추가, `OpenAPIItemProvider`에 `schemaContext` 전달
 
+### v1.2.0 - Swagger 2.0 지원
+
+**추가 기능**: Swagger 2.0 스펙 파일 지원
+**구현 방식**:
+
+- `@apidevtools/swagger-parser`로 스펙 로딩/검증/$ref 해석
+- `swagger2openapi`로 Swagger 2.0 → OpenAPI 3.0 자동 변환
+- `spec-loader.ts` 유틸리티로 버전 감지 및 통합 처리
+- `/__schema` 응답에 `_meta.specVersion` 필드 추가 (`swagger2` | `openapi3`)
+
 ## 코드 스타일
 
 - ESLint + Prettier 사용
@@ -421,7 +438,8 @@ Proto RPC에서는 request body에서 파라미터를 추출합니다:
 yarn test                       # 전체 테스트 (unit + e2e)
 yarn test:unit                  # 단위 테스트만
 yarn test:e2e                   # E2E 테스트만
-yarn test:e2e:openapi           # OpenAPI Spec File Mode E2E
+yarn test:e2e:openapi           # OpenAPI 3.x Spec File Mode E2E
+yarn test:e2e:swagger           # Swagger 2.0 Spec File Mode E2E
 yarn test:e2e:openapi-client    # OpenAPI Client Package Mode E2E
 yarn test:e2e:proto             # Proto RPC E2E
 yarn test:watch                 # watch 모드
@@ -433,14 +451,16 @@ yarn test:watch                 # watch 모드
 
 | 테스트 파일 | 테스트 수 | 커버리지 |
 |------------|----------|---------|
-| `playground-openapi.e2e.test.ts` | 76 | Spec File Mode 100% |
+| `playground-openapi.e2e.test.ts` | 76 | OpenAPI 3.x Spec File Mode 100% |
+| `playground-swagger.e2e.test.ts` | 50 | Swagger 2.0 Spec File Mode 100% |
 | `playground-openapi-client.e2e.test.ts` | 78 | Client Package Mode 100% |
 | `playground-openapi-client-v7.e2e.test.ts` | 28 | openapi-generator v7 호환성 |
 | `playground-proto.e2e.test.ts` | 93 | Proto RPC 100% (7 서비스) |
 | `playground-proto-advanced.e2e.test.ts` | 37 | AdvancedService 심화 테스트 |
+| `spec-loader.test.ts` | 23 | 스펙 로더 유틸리티 테스트 |
 | `refactored-utils.test.ts` | 26 | 공유 유틸리티 테스트 |
 | Other unit tests | 117 | Core utilities |
-| **Total** | **455** | |
+| **Total** | **528** | |
 
 ### E2E 테스트 구성
 
@@ -495,7 +515,7 @@ npm publish --access public  # npm 게시
 **PowerShell (Windows):**
 
 ```powershell
-Remove-Item -Recurse -Force .yarn/install-state.gz, .nuxt, playground-openapi/.nuxt, playground-openapi-client/.nuxt, playground-proto/.nuxt -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force .yarn/install-state.gz, .nuxt, playground-openapi/.nuxt, playground-swagger/.nuxt, playground-openapi-client/.nuxt, playground-proto/.nuxt -ErrorAction SilentlyContinue
 yarn install
 yarn dev:prepare:playground
 ```
@@ -503,7 +523,7 @@ yarn dev:prepare:playground
 **Bash (Linux/macOS):**
 
 ```bash
-rm -rf .yarn/install-state.gz .nuxt playground-openapi/.nuxt playground-openapi-client/.nuxt playground-proto/.nuxt
+rm -rf .yarn/install-state.gz .nuxt playground-openapi/.nuxt playground-swagger/.nuxt playground-openapi-client/.nuxt playground-proto/.nuxt
 yarn install
 yarn dev:prepare:playground
 ```

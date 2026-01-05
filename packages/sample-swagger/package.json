@@ -1,0 +1,16 @@
+{
+  "name": "@mock-fried/sample-swagger",
+  "version": "1.0.0",
+  "description": "Sample Swagger 2.0 spec for mock-fried testing",
+  "private": true,
+  "main": "swagger.yaml",
+  "files": [
+    "swagger.yaml"
+  ],
+  "keywords": [
+    "swagger",
+    "mock",
+    "api"
+  ],
+  "license": "MIT"
+}
