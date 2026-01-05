@@ -315,7 +315,7 @@ function handleSimpleListResponse(
   limit: number,
   cursor: string | undefined,
   isBackward: boolean,
-  listFieldName: string | null,
+  listFieldName: string | undefined,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   wrapperSchema: any,
 ): unknown {
