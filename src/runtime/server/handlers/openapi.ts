@@ -478,7 +478,7 @@ function handleClientPackageRequest(
   const page = Number(query.page) || 1
   const limit = Number(query.limit) || Number(query.size) || 20
   const cursor = query.cursor as string | undefined
-  const isBackward = query[backwardParam] === 'true' || query[backwardParam] === '1' || query[backwardParam] === true
+  const isBackward = query[backwardParam] === 'true' || query[backwardParam] === '1'
 
   // 래퍼 응답 타입의 다른 필드들 생성 (pagination 등)
   const wrapperSchema = wrapperType ? pkg.models.get(wrapperType) : null
