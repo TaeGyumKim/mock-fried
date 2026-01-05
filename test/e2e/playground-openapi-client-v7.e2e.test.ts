@@ -38,6 +38,14 @@ describe('OpenAPI Client Package v7 Format E2E', async () => {
       expect(html).not.toContain('500')
       expect(html).not.toContain('Internal Server Error')
     })
+
+    it('should render explorer page without error', async () => {
+      const html = await $fetch('/explorer')
+      expect(html).toBeDefined()
+      expect(typeof html).toBe('string')
+      expect(html).not.toContain('500')
+      expect(html).not.toContain('Internal Server Error')
+    })
   })
 
   // ============================================
@@ -199,6 +207,58 @@ describe('OpenAPI Client Package v7 Format E2E', async () => {
         const response = await $fetch('/mock/users/user-123/posts')
 
         expect(response).toBeDefined()
+      })
+    })
+
+    describe('Backward Cursor Pagination', () => {
+      it('should return last items when isBackward=true without cursor', async () => {
+        // Forward pagination (default)
+        const forwardResponse = await $fetch('/mock/posts?limit=5') as {
+          items: Array<{ id: string }>
+          nextCursor?: string
+          hasMore: boolean
+        }
+
+        // Backward pagination (start from end)
+        const backwardResponse = await $fetch('/mock/posts?limit=5&isBackward=true') as {
+          items: Array<{ id: string }>
+          nextCursor?: string
+          hasMore: boolean
+        }
+
+        expect(forwardResponse.items.length).toBe(5)
+        expect(backwardResponse.items.length).toBe(5)
+
+        // Forward starts from beginning (has more), backward starts from end (no more)
+        expect(forwardResponse.hasMore).toBe(true)
+        expect(backwardResponse.hasMore).toBe(false)
+
+        // Items should be different (different positions in list)
+        expect(forwardResponse.items[0].id).not.toBe(backwardResponse.items[0].id)
+      })
+
+      it('should navigate backward when isBackward=true with cursor', async () => {
+        // Get first page (forward)
+        const firstPage = await $fetch('/mock/posts?limit=5') as {
+          items: Array<{ id: string }>
+          nextCursor?: string
+          hasMore: boolean
+        }
+
+        expect(firstPage.nextCursor).toBeDefined()
+        expect(firstPage.hasMore).toBe(true)
+
+        // Go backward from anchor using isBackward=true with nextCursor
+        // This should return items before the anchor (i.e., back to first page)
+        const backPage = await $fetch(`/mock/posts?limit=5&cursor=${firstPage.nextCursor}&isBackward=true`) as {
+          items: Array<{ id: string }>
+          hasMore: boolean
+        }
+
+        // Should go backward from anchor, getting first page items
+        expect(backPage.items.length).toBe(5)
+        // First page items should match when going backward from anchor
+        expect(backPage.items[0].id).toBe(firstPage.items[0].id)
       })
     })
   })

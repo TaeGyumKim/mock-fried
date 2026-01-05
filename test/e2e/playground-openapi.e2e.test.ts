@@ -294,6 +294,53 @@ describe('OpenAPI Spec File Mode E2E', async () => {
         expect(typeof response).toBe('object')
       })
     })
+
+    describe('Backward Cursor Pagination', () => {
+      it('should return last items when isBackward=true without cursor', async () => {
+        const forwardResponse = await $fetch('/mock/posts?limit=5') as {
+          items: unknown[]
+          nextCursor?: string
+          hasMore?: boolean
+          hasPrev?: boolean
+        }
+
+        const backwardResponse = await $fetch('/mock/posts?limit=5&isBackward=true') as {
+          items: unknown[]
+          nextCursor?: string
+          hasMore?: boolean
+          hasPrev?: boolean
+        }
+
+        expect(forwardResponse.items.length).toBe(5)
+        expect(backwardResponse.items.length).toBe(5)
+
+        // Forward first page should have more items
+        expect(forwardResponse.hasMore).toBe(true)
+        expect(forwardResponse.hasPrev).toBe(false)
+
+        // Backward first page should have previous items
+        expect(backwardResponse.hasMore).toBe(false)
+        expect(backwardResponse.hasPrev).toBe(true)
+      })
+
+      it('should navigate backward when isBackward=true with cursor', async () => {
+        // Get first page
+        const firstPage = await $fetch('/mock/posts?limit=5') as {
+          items: unknown[]
+          nextCursor: string
+        }
+
+        // Use nextCursor with isBackward=true
+        const backwardPage = await $fetch(`/mock/posts?cursor=${firstPage.nextCursor}&limit=5&isBackward=true`) as {
+          items: unknown[]
+          hasPrev?: boolean
+        }
+
+        expect(backwardPage.items.length).toBe(5)
+        // Going backward from first page's end should return to first page
+        expect(backwardPage.hasPrev).toBe(false)
+      })
+    })
   })
 
   // ============================================
