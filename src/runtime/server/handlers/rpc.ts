@@ -28,6 +28,8 @@ let cachedProtoPath: string | null = null
 // Proto Mode용 pagination managers
 let protoCursorManager: CursorPaginationManager<Record<string, unknown>> | null = null
 let protoPageManager: PagePaginationManager<Record<string, unknown>> | null = null
+// Proto Mode용 backward param 설정
+let rpcBackwardParam: string = 'isBackward'
 
 /**
  * 디렉토리에서 모든 .proto 파일 찾기
@@ -132,6 +134,7 @@ export function clearProtoCache(): void {
   cachedProtoPath = null
   protoCursorManager = null
   protoPageManager = null
+  rpcBackwardParam = 'isBackward'
 }
 
 /**
@@ -423,7 +426,11 @@ function getResponseTypeInfo(
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig(event)
-  const mockConfig = config.mock as { prefix?: string, protoPath?: string } | undefined
+  const mockConfig = config.mock as {
+    prefix?: string
+    protoPath?: string
+    cursor?: { backwardParam?: string }
+  } | undefined
 
   if (!mockConfig?.protoPath) {
     throw createError({
@@ -431,6 +438,9 @@ export default defineEventHandler(async (event) => {
       message: 'Proto path not configured',
     })
   }
+
+  // Set backward param from config
+  rpcBackwardParam = mockConfig?.cursor?.backwardParam || 'isBackward'
 
   // URL 파라미터에서 서비스/메서드 추출
   const params = getRouterParams(event)
@@ -519,6 +529,11 @@ export default defineEventHandler(async (event) => {
     const page = Number(requestBody.page) || 1
     const limit = Number(requestBody.limit) || Number(requestBody.page_size) || 20
     const cursor = requestBody.cursor as string | undefined
+    // isBackward 지원 (camelCase와 snake_case 모두 지원)
+    const isBackward = requestBody[rpcBackwardParam] === true
+      || requestBody.is_backward === true
+      || requestBody[rpcBackwardParam] === 'true'
+      || requestBody.is_backward === 'true'
     const total = 100 // 기본 총 아이템 수
 
     // ItemProvider 생성
@@ -535,12 +550,13 @@ export default defineEventHandler(async (event) => {
     }
 
     // Cursor 기반 또는 Page 기반 pagination
-    if (cursor || paginationInfo.isCursorBased) {
+    if (cursor || isBackward || paginationInfo.isCursorBased) {
       const result = protoCursorManager.getCursorPageWithProvider(itemProvider, {
         cursor,
         limit,
         total,
         seed,
+        isBackward,
       })
 
       // 응답 구조 생성

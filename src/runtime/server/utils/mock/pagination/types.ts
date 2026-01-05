@@ -99,6 +99,8 @@ export interface CursorPaginationOptions {
   cache?: boolean
   /** 캐시 TTL (ms) */
   ttl?: number
+  /** 역방향 페이지네이션 여부 (query parameter override) */
+  isBackward?: boolean
 }
 
 /**
@@ -145,6 +147,8 @@ export interface CursorConfig {
   cursorTTL?: number
   /** 정렬 정보 포함 (기본: false) */
   includeSortInfo?: boolean
+  /** 역방향 페이지네이션 쿼리 파라미터명 (기본: 'isBackward') */
+  backwardParam?: string
 }
 
 /**
@@ -162,4 +166,5 @@ export const DEFAULT_CURSOR_CONFIG: Required<CursorConfig> = {
   enableExpiry: true,
   cursorTTL: 60 * 60 * 1000, // 1시간
   includeSortInfo: false,
+  backwardParam: 'isBackward',
 }

@@ -176,6 +176,7 @@ export class CursorPaginationManager<T = Record<string, unknown>> {
       snapshotId,
       cache = this.config.cache,
       ttl = this.config.cacheTTL,
+      isBackward = false,
     } = options
 
     // ItemProvider 가져오기
@@ -206,8 +207,8 @@ export class CursorPaginationManager<T = Record<string, unknown>> {
       if (cursorPayload) {
         // 만료 체크
         if (isCursorExpired(cursorPayload, this.cursorConfig)) {
-          // 만료된 cursor - 처음부터 시작
-          startIndex = 0
+          // 만료된 cursor - 처음부터 시작 (isBackward면 끝부터)
+          startIndex = isBackward ? Math.max(0, snapshot.total - limit) : 0
         }
         else if (typeof cursorPayload.lastId === 'string' && cursorPayload.lastId.startsWith('legacy-')) {
           // Legacy cursor format
@@ -219,15 +220,21 @@ export class CursorPaginationManager<T = Record<string, unknown>> {
           const anchorIndex = snapshot.itemIds.findIndex(id => String(id) === targetId)
 
           if (anchorIndex !== -1) {
-            startIndex = cursorPayload.direction === 'forward'
+            // isBackward query parameter가 cursor direction보다 우선
+            const effectiveDirection = isBackward ? 'backward' : cursorPayload.direction
+            startIndex = effectiveDirection === 'forward'
               ? anchorIndex + 1
               : Math.max(0, anchorIndex - limit)
           }
           else {
-            startIndex = 0
+            startIndex = isBackward ? Math.max(0, snapshot.total - limit) : 0
           }
         }
       }
+    }
+    else if (isBackward) {
+      // cursor 없이 isBackward=true면 끝에서부터 시작
+      startIndex = Math.max(0, snapshot.total - limit)
     }
 
     // 범위 계산
@@ -301,6 +308,7 @@ export class CursorPaginationManager<T = Record<string, unknown>> {
       snapshotId,
       cache = this.config.cache,
       ttl = this.config.cacheTTL,
+      isBackward = false,
     } = options
 
     const idFieldName = provider.getIdFieldName()
@@ -330,7 +338,8 @@ export class CursorPaginationManager<T = Record<string, unknown>> {
       if (cursorPayload) {
         // 만료 체크
         if (isCursorExpired(cursorPayload, this.cursorConfig)) {
-          startIndex = 0
+          // 만료된 cursor - 처음부터 시작 (isBackward면 끝부터)
+          startIndex = isBackward ? Math.max(0, snapshot.total - limit) : 0
         }
         else if (typeof cursorPayload.lastId === 'string' && cursorPayload.lastId.startsWith('legacy-')) {
           startIndex = Number.parseInt(cursorPayload.lastId.replace('legacy-', ''), 10)
@@ -340,15 +349,21 @@ export class CursorPaginationManager<T = Record<string, unknown>> {
           const anchorIndex = snapshot.itemIds.findIndex(id => String(id) === targetId)
 
           if (anchorIndex !== -1) {
-            startIndex = cursorPayload.direction === 'forward'
+            // isBackward query parameter가 cursor direction보다 우선
+            const effectiveDirection = isBackward ? 'backward' : cursorPayload.direction
+            startIndex = effectiveDirection === 'forward'
               ? anchorIndex + 1
               : Math.max(0, anchorIndex - limit)
           }
           else {
-            startIndex = 0
+            startIndex = isBackward ? Math.max(0, snapshot.total - limit) : 0
           }
         }
       }
+    }
+    else if (isBackward) {
+      // cursor 없이 isBackward=true면 끝에서부터 시작
+      startIndex = Math.max(0, snapshot.total - limit)
     }
 
     // 범위 계산

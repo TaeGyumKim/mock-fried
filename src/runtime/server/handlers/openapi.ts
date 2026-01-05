@@ -36,6 +36,8 @@ let cachedSpecPath: string | null = null
 // Spec File Mode용 pagination managers
 let specCursorManager: CursorPaginationManager<Record<string, unknown>> | null = null
 let specPageManager: PagePaginationManager<Record<string, unknown>> | null = null
+// Spec File Mode용 backward param 설정
+let specBackwardParam: string = 'isBackward'
 
 interface OpenAPISpec {
   openapi?: string
@@ -145,6 +147,7 @@ async function getOpenAPIBackend(specPath: string): Promise<any> {
           const page = Number(query.page) || 1
           const limit = Number(query.limit) || Number(query.size) || 20
           const cursor = query.cursor as string | undefined
+          const isBackward = query[specBackwardParam] === 'true' || query[specBackwardParam] === '1'
           const total = 100 // 기본 총 아이템 수
 
           // ItemProvider 생성
@@ -162,12 +165,13 @@ async function getOpenAPIBackend(specPath: string): Promise<any> {
           }
 
           // Cursor 기반 또는 Page 기반 pagination
-          if (cursor || paginationInfo.isCursorBased) {
+          if (cursor || isBackward || paginationInfo.isCursorBased) {
             const result = specCursorManager.getCursorPageWithProvider(itemProvider, {
               cursor,
               limit,
               total,
               seed,
+              isBackward,
             })
 
             // 응답 스키마에 맞게 구조 생성
@@ -299,6 +303,7 @@ export function clearOpenApiCache(): void {
   pagePaginationManager = null
   specCursorManager = null
   specPageManager = null
+  specBackwardParam = 'isBackward'
 }
 
 /**
@@ -406,6 +411,7 @@ function handleClientPackageRequest(
   path: string,
   method: string,
   query: Record<string, string | number>,
+  backwardParam: string = 'isBackward',
 ): { statusCode: number, body: unknown, meta?: Record<string, unknown> } {
   const match = findMatchingEndpoint(pkg.endpoints, path, method)
 
@@ -472,6 +478,7 @@ function handleClientPackageRequest(
   const page = Number(query.page) || 1
   const limit = Number(query.limit) || Number(query.size) || 20
   const cursor = query.cursor as string | undefined
+  const isBackward = query[backwardParam] === 'true' || query[backwardParam] === '1' || query[backwardParam] === true
 
   // 래퍼 응답 타입의 다른 필드들 생성 (pagination 등)
   const wrapperSchema = wrapperType ? pkg.models.get(wrapperType) : null
@@ -487,13 +494,14 @@ function handleClientPackageRequest(
 
     // 페이지네이션이 있는 리스트 응답 (items 필드 + pagination 필드)
     if (hasItemsField && hasPaginationFields) {
-      if (cursor) {
+      if (cursor || isBackward) {
         // 커서 기반 페이지네이션 (새 CursorPaginationManager 사용)
         const result = cursorManager.getCursorPage(modelName, {
           cursor,
           limit,
           total: 100,
           seed,
+          isBackward,
         })
         // Remove internal _snapshotId from response
         const { _snapshotId: _, ...responseWithoutSnapshotId } = result
@@ -514,13 +522,14 @@ function handleClientPackageRequest(
     }
     else {
       // 단순 배열 래퍼 응답 (posts, comments 등)
-      // cursor 파라미터가 있으면 CursorPaginationManager 사용
-      if (cursor) {
+      // cursor 파라미터가 있거나 isBackward면 CursorPaginationManager 사용
+      if (cursor || isBackward) {
         const result = cursorManager.getCursorPage(modelName, {
           cursor,
           limit,
           total: 100,
           seed,
+          isBackward,
         })
 
         if (listFieldName) {
@@ -677,6 +686,7 @@ export default defineEventHandler(async (event) => {
       mockConfig.cursor,
     )
 
+    const backwardParam = mockConfig?.cursor?.backwardParam || 'isBackward'
     const result = handleClientPackageRequest(
       pkg,
       generator,
@@ -685,6 +695,7 @@ export default defineEventHandler(async (event) => {
       path,
       event.method,
       query,
+      backwardParam,
     )
 
     if (result.statusCode) {
@@ -696,6 +707,8 @@ export default defineEventHandler(async (event) => {
 
   // 모드 2: OpenAPI 스펙 파일 모드
   if (mockConfig?.openapiPath) {
+    // Set backward param for spec file mode
+    specBackwardParam = mockConfig?.cursor?.backwardParam || 'isBackward'
     const backend = await getOpenAPIBackend(mockConfig.openapiPath)
 
     // 요청 헤더 추출

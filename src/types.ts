@@ -54,6 +54,12 @@ export interface MockCursorConfig {
    * @default false
    */
   includeSortInfo?: boolean
+
+  /**
+   * 역방향 페이지네이션 쿼리 파라미터명
+   * @default 'isBackward'
+   */
+  backwardParam?: string
 }
 
 /**
