@@ -2,62 +2,25 @@ import { defineEventHandler, readBody, getRouterParams, createError } from 'h3'
 import { useRuntimeConfig } from '#imports'
 import * as protoLoader from '@grpc/proto-loader'
 import * as grpc from '@grpc/grpc-js'
-import { readdirSync, statSync } from 'node:fs'
-import { join, extname, dirname } from 'pathe'
+import { dirname } from 'pathe'
 import {
   generateMockMessage,
   deriveSeedFromRequest,
-  CursorPaginationManager,
-  PagePaginationManager,
 } from '../utils/mock'
 import {
   ProtoItemProvider,
   analyzeProtoPagination,
   type ProtoMessageType,
 } from '../utils/mock/providers'
-
-// Proto 캐시
-interface ProtoCache {
-  packageDefinition: protoLoader.PackageDefinition
-  grpcObject: grpc.GrpcObject
-  services: Map<string, grpc.ServiceDefinition>
-}
-
-let protoCache: ProtoCache | null = null
-let cachedProtoPath: string | null = null
-// Proto Mode용 pagination managers
-let protoCursorManager: CursorPaginationManager<Record<string, unknown>> | null = null
-let protoPageManager: PagePaginationManager<Record<string, unknown>> | null = null
-// Proto Mode용 backward param 설정
-let rpcBackwardParam: string = 'isBackward'
+import { findProtoFiles, PROTO_TYPE_MAP } from '../utils/proto-utils'
+import { cacheManager, type ProtoCache } from '../utils/cache-manager'
+import { getOrCreateCursorManager, getOrCreatePageManager } from '../utils/pagination-factory'
 
 /**
- * 디렉토리에서 모든 .proto 파일 찾기
+ * Proto 캐시 초기화
  */
-function findProtoFiles(dirPath: string): string[] {
-  const files: string[] = []
-
-  const stat = statSync(dirPath)
-  if (stat.isFile() && extname(dirPath) === '.proto') {
-    return [dirPath]
-  }
-
-  if (stat.isDirectory()) {
-    const entries = readdirSync(dirPath)
-    for (const entry of entries) {
-      const fullPath = join(dirPath, entry)
-      const entryStat = statSync(fullPath)
-
-      if (entryStat.isFile() && extname(entry) === '.proto') {
-        files.push(fullPath)
-      }
-      else if (entryStat.isDirectory()) {
-        files.push(...findProtoFiles(fullPath))
-      }
-    }
-  }
-
-  return files
+export function clearProtoCache(): void {
+  cacheManager.clearProto()
 }
 
 /**
@@ -88,8 +51,10 @@ function extractServices(
  * Proto 파일 로드 및 파싱
  */
 async function loadProto(protoPath: string): Promise<ProtoCache> {
-  if (protoCache && cachedProtoPath === protoPath) {
-    return protoCache
+  const cache = cacheManager.protoMode
+
+  if (cache.cache && cache.path === protoPath) {
+    return cache.cache
   }
 
   const protoFiles = findProtoFiles(protoPath)
@@ -99,6 +64,7 @@ async function loadProto(protoPath: string): Promise<ProtoCache> {
   }
 
   // protoPath가 파일인 경우 dirname 사용, 디렉토리인 경우 그대로 사용
+  const { statSync } = await import('node:fs')
   const stat = statSync(protoPath)
   const includeDir = stat.isFile() ? dirname(protoPath) : protoPath
 
@@ -116,71 +82,16 @@ async function loadProto(protoPath: string): Promise<ProtoCache> {
   const services = new Map<string, grpc.ServiceDefinition>()
   extractServices(grpcObject, services)
 
-  protoCache = {
+  const protoCache: ProtoCache = {
     packageDefinition,
     grpcObject,
     services,
   }
-  cachedProtoPath = protoPath
+
+  cache.cache = protoCache
+  cache.path = protoPath
 
   return protoCache
-}
-
-/**
- * Proto 캐시 초기화
- */
-export function clearProtoCache(): void {
-  protoCache = null
-  cachedProtoPath = null
-  protoCursorManager = null
-  protoPageManager = null
-  rpcBackwardParam = 'isBackward'
-}
-
-/**
- * Protobuf 타입 문자열 변환
- * proto-loader는 타입을 "TYPE_INT32" 같은 문자열로 반환할 수 있음
- * https://protobuf.dev/programming-guides/proto3/#scalar
- */
-const PROTO_TYPE_MAP: Record<string | number, string> = {
-  // 숫자 키 (legacy/fallback)
-  1: 'double',
-  2: 'float',
-  3: 'int64',
-  4: 'uint64',
-  5: 'int32',
-  6: 'fixed64',
-  7: 'fixed32',
-  8: 'bool',
-  9: 'string',
-  10: 'group',
-  11: 'message',
-  12: 'bytes',
-  13: 'uint32',
-  14: 'enum',
-  15: 'sfixed32',
-  16: 'sfixed64',
-  17: 'sint32',
-  18: 'sint64',
-  // 문자열 키 (proto-loader 실제 반환값)
-  TYPE_DOUBLE: 'double',
-  TYPE_FLOAT: 'float',
-  TYPE_INT64: 'int64',
-  TYPE_UINT64: 'uint64',
-  TYPE_INT32: 'int32',
-  TYPE_FIXED64: 'fixed64',
-  TYPE_FIXED32: 'fixed32',
-  TYPE_BOOL: 'bool',
-  TYPE_STRING: 'string',
-  TYPE_GROUP: 'group',
-  TYPE_MESSAGE: 'message',
-  TYPE_BYTES: 'bytes',
-  TYPE_UINT32: 'uint32',
-  TYPE_ENUM: 'enum',
-  TYPE_SFIXED32: 'sfixed32',
-  TYPE_SFIXED64: 'sfixed64',
-  TYPE_SINT32: 'sint32',
-  TYPE_SINT64: 'sint64',
 }
 
 /**
@@ -440,7 +351,8 @@ export default defineEventHandler(async (event) => {
   }
 
   // Set backward param from config
-  rpcBackwardParam = mockConfig?.cursor?.backwardParam || 'isBackward'
+  const cache = cacheManager.protoMode
+  cache.backwardParam = mockConfig?.cursor?.backwardParam || 'isBackward'
 
   // URL 파라미터에서 서비스/메서드 추출
   const params = getRouterParams(event)
@@ -455,9 +367,9 @@ export default defineEventHandler(async (event) => {
   }
 
   // Proto 로드
-  let cache: ProtoCache
+  let protoCache: ProtoCache
   try {
-    cache = await loadProto(mockConfig.protoPath)
+    protoCache = await loadProto(mockConfig.protoPath)
   }
   catch (error) {
     throw createError({
@@ -467,9 +379,9 @@ export default defineEventHandler(async (event) => {
   }
 
   // 서비스 찾기
-  const serviceDefinition = cache.services.get(serviceName)
+  const serviceDefinition = protoCache.services.get(serviceName)
   if (!serviceDefinition) {
-    const availableServices = Array.from(cache.services.keys()).filter(k => !k.includes('.'))
+    const availableServices = Array.from(protoCache.services.keys()).filter(k => !k.includes('.'))
     throw createError({
       statusCode: 404,
       message: `Service '${serviceName}' not found. Available services: ${availableServices.join(', ')}`,
@@ -504,7 +416,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // 응답 타입 정보 추출
-  const responseTypeInfo = getResponseTypeInfo(methodDef, cache.packageDefinition)
+  const responseTypeInfo = getResponseTypeInfo(methodDef, protoCache.packageDefinition)
 
   // Pagination 응답 분석 (seed 계산 전에 먼저 분석)
   const paginationInfo = analyzeProtoPagination(responseTypeInfo)
@@ -530,9 +442,9 @@ export default defineEventHandler(async (event) => {
     const limit = Number(requestBody.limit) || Number(requestBody.page_size) || 20
     const cursor = requestBody.cursor as string | undefined
     // isBackward 지원 (camelCase와 snake_case 모두 지원)
-    const isBackward = requestBody[rpcBackwardParam] === true
+    const isBackward = requestBody[cache.backwardParam] === true
       || requestBody.is_backward === true
-      || requestBody[rpcBackwardParam] === 'true'
+      || requestBody[cache.backwardParam] === 'true'
       || requestBody.is_backward === 'true'
     const total = 100 // 기본 총 아이템 수
 
@@ -541,17 +453,13 @@ export default defineEventHandler(async (event) => {
       modelName: `${serviceName}.${methodName}`,
     })
 
-    // Pagination Manager 초기화 (캐싱)
-    if (!protoCursorManager) {
-      protoCursorManager = new CursorPaginationManager(itemProvider)
-    }
-    if (!protoPageManager) {
-      protoPageManager = new PagePaginationManager(itemProvider)
-    }
+    // Pagination Manager 가져오기 (캐시 활용)
+    const cursorManager = getOrCreateCursorManager(itemProvider, cache)
+    const pageManager = getOrCreatePageManager(itemProvider, cache)
 
     // Cursor 기반 또는 Page 기반 pagination
     if (cursor || isBackward || paginationInfo.isCursorBased) {
-      const result = protoCursorManager.getCursorPageWithProvider(itemProvider, {
+      const result = cursorManager.getCursorPageWithProvider(itemProvider, {
         cursor,
         limit,
         total,
@@ -591,7 +499,7 @@ export default defineEventHandler(async (event) => {
     }
     else {
       // Page 기반 pagination
-      const result = protoPageManager.getPagedResponseWithProvider(itemProvider, {
+      const result = pageManager.getPagedResponseWithProvider(itemProvider, {
         page,
         limit,
         total,

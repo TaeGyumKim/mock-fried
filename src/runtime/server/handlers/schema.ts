@@ -2,8 +2,7 @@ import { defineEventHandler, createError } from 'h3'
 import { useRuntimeConfig } from '#imports'
 import { consola } from 'consola'
 import { createRequire } from 'node:module'
-import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs'
-import { join, extname } from 'pathe'
+import { readFileSync, existsSync, statSync } from 'node:fs'
 import yaml from 'js-yaml'
 import type {
   ApiSchema,
@@ -19,6 +18,8 @@ import type {
   ParsedEndpoint,
 } from '../../../types'
 import { getClientPackage } from '../utils/client-parser'
+import { findProtoFiles, getProtoTypeName } from '../utils/proto-utils'
+import { cacheManager } from '../utils/cache-manager'
 
 const logger = consola.withTag('mock-fried')
 
@@ -134,14 +135,11 @@ function parseClientPackageSchema(config: OpenApiClientConfig): OpenApiSchema | 
   }
 }
 
-// 캐시
-let cachedSchema: ApiSchema | null = null
-
 /**
  * 스키마 캐시 초기화
  */
 export function clearSchemaCache(): void {
-  cachedSchema = null
+  cacheManager.clearSchema()
 }
 
 /**
@@ -245,35 +243,6 @@ function parseOpenApiSpec(specPath: string): OpenApiSchema | undefined {
     logger.error('Failed to parse OpenAPI spec:', specPath, error)
     return undefined
   }
-}
-
-/**
- * 디렉토리에서 모든 .proto 파일 찾기
- */
-function findProtoFiles(dirPath: string): string[] {
-  const files: string[] = []
-
-  const stat = statSync(dirPath)
-  if (stat.isFile() && extname(dirPath) === '.proto') {
-    return [dirPath]
-  }
-
-  if (stat.isDirectory()) {
-    const entries = readdirSync(dirPath)
-    for (const entry of entries) {
-      const fullPath = join(dirPath, entry)
-      const entryStat = statSync(fullPath)
-
-      if (entryStat.isFile() && extname(entry) === '.proto') {
-        files.push(fullPath)
-      }
-      else if (entryStat.isDirectory()) {
-        files.push(...findProtoFiles(fullPath))
-      }
-    }
-  }
-
-  return files
 }
 
 /**
@@ -387,38 +356,6 @@ function extractFields(messageType: Record<string, unknown>): RpcFieldSchema[] {
 }
 
 /**
- * Proto 타입 번호를 문자열로 변환
- */
-function getProtoTypeName(typeNum: number, typeName?: string): string {
-  const typeMap: Record<number, string> = {
-    1: 'double',
-    2: 'float',
-    3: 'int64',
-    4: 'uint64',
-    5: 'int32',
-    6: 'fixed64',
-    7: 'fixed32',
-    8: 'bool',
-    9: 'string',
-    10: 'group',
-    11: 'message',
-    12: 'bytes',
-    13: 'uint32',
-    14: 'enum',
-    15: 'sfixed32',
-    16: 'sfixed64',
-    17: 'sint32',
-    18: 'sint64',
-  }
-
-  if (typeName) {
-    return typeName.split('.').pop() || typeName
-  }
-
-  return typeMap[typeNum] || 'unknown'
-}
-
-/**
  * 스키마 핸들러
  * GET /mock/__schema
  */
@@ -432,8 +369,9 @@ export default defineEventHandler(async () => {
   }
 
   // 캐시 확인
-  if (cachedSchema) {
-    return cachedSchema
+  const schemaCache = cacheManager.schemaCache
+  if (schemaCache.schema) {
+    return schemaCache.schema
   }
 
   const schema: ApiSchema = {}
@@ -502,7 +440,7 @@ export default defineEventHandler(async () => {
   }
 
   // 캐시 저장
-  cachedSchema = schema
+  schemaCache.schema = schema
 
   return schema
 })
