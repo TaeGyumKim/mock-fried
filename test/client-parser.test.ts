@@ -75,7 +75,7 @@ describe('Client Parser - Path Extraction Patterns', () => {
     it('should extract path with single parameter and .replace()', () => {
       const body = `
         const response = await this.request({
-            path: \`/before-after/posts/{postId}\`.replace(\`{${"postId"}}\`, encodeURIComponent(String(requestParameters.postId))),
+            path: \`/before-after/posts/{postId}\`.replace(\`{${'postId'}}\`, encodeURIComponent(String(requestParameters.postId))),
             method: 'GET',
         }, initOverrides);
       `
@@ -91,7 +91,7 @@ describe('Client Parser - Path Extraction Patterns', () => {
     it('should extract path with multiple parameters and chained .replace()', () => {
       const body = `
         const response = await this.request({
-            path: \`/admin/lounge/{boardType}/posts/{postId}/comments/{commentId}/stats\`.replace(\`{${"boardType"}}\`, encodeURIComponent(String(requestParameters.boardType))).replace(\`{${"postId"}}\`, encodeURIComponent(String(requestParameters.postId))).replace(\`{${"commentId"}}\`, encodeURIComponent(String(requestParameters.commentId))),
+            path: \`/admin/lounge/{boardType}/posts/{postId}/comments/{commentId}/stats\`.replace(\`{${'boardType'}}\`, encodeURIComponent(String(requestParameters.boardType))).replace(\`{${'postId'}}\`, encodeURIComponent(String(requestParameters.postId))).replace(\`{${'commentId'}}\`, encodeURIComponent(String(requestParameters.commentId))),
             method: 'POST',
         }, initOverrides);
       `
@@ -141,7 +141,7 @@ describe('Client Parser - Method Extraction', () => {
   it('should extract DELETE method', () => {
     const body = `
       const response = await this.request({
-          path: \`/users/{id}\`.replace(\`{${"id"}}\`, encodeURIComponent(String(requestParameters.id))),
+          path: \`/users/{id}\`.replace(\`{${'id'}}\`, encodeURIComponent(String(requestParameters.id))),
           method: 'DELETE',
       });
     `
@@ -208,7 +208,7 @@ describe('Client Parser - JSDoc and Method Signature', () => {
      */
     async getAllBeforeAfterPostsRaw(requestParameters: GetAllBeforeAfterPostsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetAllBeforeAfterPosts200Response>> {
     `
-    const rawMethodRegex = /\/\*\*([\s\S]*?)\*\/\s*\n\s*async\s+(\w+)Raw\([^)]*\):\s*Promise<runtime\.ApiResponse<((?:[^<>]|<[^>]*>)+)>>/g
+    const rawMethodRegex = /\/\*\*([\s\S]*?)\*\/[\t\v\f\r \xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*\n\s*async\s+(\w+)Raw\([^)]*\):\s*Promise<runtime\.ApiResponse<((?:[^<>]|<[^>]*>)+)>>/g
     const match = rawMethodRegex.exec(content)
 
     expect(match).not.toBeNull()
@@ -223,7 +223,7 @@ describe('Client Parser - JSDoc and Method Signature', () => {
      */
     async listUserRoutinesRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<RoutineListResponseResponse>> {
     `
-    const rawMethodRegex = /\/\*\*([\s\S]*?)\*\/\s*\n\s*async\s+(\w+)Raw\([^)]*\):\s*Promise<runtime\.ApiResponse<((?:[^<>]|<[^>]*>)+)>>/g
+    const rawMethodRegex = /\/\*\*([\s\S]*?)\*\/[\t\v\f\r \xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*\n\s*async\s+(\w+)Raw\([^)]*\):\s*Promise<runtime\.ApiResponse<((?:[^<>]|<[^>]*>)+)>>/g
     const match = rawMethodRegex.exec(content)
 
     expect(match).not.toBeNull()
@@ -238,7 +238,7 @@ describe('Client Parser - JSDoc and Method Signature', () => {
      */
     async deleteRoutineRaw(requestParameters: DeleteRoutineRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
     `
-    const rawMethodRegex = /\/\*\*([\s\S]*?)\*\/\s*\n\s*async\s+(\w+)Raw\([^)]*\):\s*Promise<runtime\.ApiResponse<((?:[^<>]|<[^>]*>)+)>>/g
+    const rawMethodRegex = /\/\*\*([\s\S]*?)\*\/[\t\v\f\r \xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*\n\s*async\s+(\w+)Raw\([^)]*\):\s*Promise<runtime\.ApiResponse<((?:[^<>]|<[^>]*>)+)>>/g
     const match = rawMethodRegex.exec(content)
 
     expect(match).not.toBeNull()
@@ -253,7 +253,7 @@ describe('Client Parser - JSDoc and Method Signature', () => {
      */
     async getTagsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<string>>> {
     `
-    const rawMethodRegex = /\/\*\*([\s\S]*?)\*\/\s*\n\s*async\s+(\w+)Raw\([^)]*\):\s*Promise<runtime\.ApiResponse<((?:[^<>]|<[^>]*>)+)>>/g
+    const rawMethodRegex = /\/\*\*([\s\S]*?)\*\/[\t\v\f\r \xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*\n\s*async\s+(\w+)Raw\([^)]*\):\s*Promise<runtime\.ApiResponse<((?:[^<>]|<[^>]*>)+)>>/g
     const match = rawMethodRegex.exec(content)
 
     expect(match).not.toBeNull()
@@ -353,7 +353,7 @@ describe('Client Parser - Real World Patterns', () => {
   it('should parse AdminLoungeApi pattern with multiple path params', () => {
     const methodBody = `
         const response = await this.request({
-            path: \`/admin/lounge/{boardType}/posts/{postId}/comments/{commentId}/stats/adjustments\`.replace(\`{${"boardType"}}\`, encodeURIComponent(String(requestParameters.boardType))).replace(\`{${"postId"}}\`, encodeURIComponent(String(requestParameters.postId))).replace(\`{${"commentId"}}\`, encodeURIComponent(String(requestParameters.commentId))),
+            path: \`/admin/lounge/{boardType}/posts/{postId}/comments/{commentId}/stats/adjustments\`.replace(\`{${'boardType'}}\`, encodeURIComponent(String(requestParameters.boardType))).replace(\`{${'postId'}}\`, encodeURIComponent(String(requestParameters.postId))).replace(\`{${'commentId'}}\`, encodeURIComponent(String(requestParameters.commentId))),
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,

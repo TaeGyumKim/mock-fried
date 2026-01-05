@@ -6,8 +6,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
   CursorPaginationManager,
-  encodeCursor,
-  decodeCursor,
 } from '../src/runtime/server/utils/mock/pagination/cursor-manager'
 import { getSnapshotStore } from '../src/runtime/server/utils/mock/pagination/snapshot-store'
 import type { ItemProvider } from '../src/runtime/server/utils/mock/pagination/interfaces'
@@ -28,21 +26,21 @@ class MockItemProvider implements ItemProvider<{ id: string, name: string }> {
     return this.modelName
   }
 
-  generateItem(index: number, seed: string): { id: string, name: string } {
+  generateItem(index: number, _seed: string): { id: string, name: string } {
     return {
       id: `id-${index}`,
       name: `Item ${index}`,
     }
   }
 
-  generateItemWithId(id: string | number, index: number, seed: string): { id: string, name: string } {
+  generateItemWithId(id: string | number, index: number, _seed: string): { id: string, name: string } {
     return {
       id: String(id),
       name: `Item ${index}`,
     }
   }
 
-  generateId(index: number, seed: string): string | number {
+  generateId(index: number, _seed: string): string | number {
     return `id-${index}`
   }
 }
@@ -195,10 +193,13 @@ describe('Cursor Backward Pagination', () => {
     })
 
     it('should export CursorConfig with backwardParam type', async () => {
-      const types = await import('../src/runtime/server/utils/mock/pagination/types')
+      const { DEFAULT_CURSOR_CONFIG } = await import('../src/runtime/server/utils/mock/pagination/types')
+
+      // Verify the import is valid at runtime
+      expect(DEFAULT_CURSOR_CONFIG).toBeDefined()
 
       // Type check - if this compiles, the type is correct
-      const config: typeof types.DEFAULT_CURSOR_CONFIG = {
+      const config: typeof DEFAULT_CURSOR_CONFIG = {
         enableExpiry: true,
         cursorTTL: 3600000,
         includeSortInfo: false,
