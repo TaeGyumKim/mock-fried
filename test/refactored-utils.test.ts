@@ -225,7 +225,7 @@ describe('Cache Manager', () => {
       const { cacheManager } = await import('../src/runtime/server/utils/cache-manager')
 
       // Set some value
-      cacheManager.schemaCache.schema = { openapi: { info: { title: 'Test' } } } as any
+      cacheManager.schemaCache.schema = { openapi: { info: { title: 'Test', version: '1.0.0' }, paths: [] } }
 
       // Clear Schema
       cacheManager.clearSchema()
