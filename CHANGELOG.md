@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/TaeGyumKim/mock-fried/compare/v1.2.1...v1.3.0) (2026-01-05)
+
+
+### Features
+
+* add isBackward query parameter support for cursor pagination ([c1fd77c](https://github.com/TaeGyumKim/mock-fried/commit/c1fd77ca98679cfc23317a197051a52ec4bf22df))
+
 ## [1.2.1](https://github.com/TaeGyumKim/mock-fried/compare/v1.2.0...v1.2.1) (2026-01-05)
 
 
