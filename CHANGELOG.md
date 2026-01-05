@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.3.0](https://github.com/TaeGyumKim/mock-fried/compare/v1.2.1...v1.3.0) (2026-01-05)
+
+
+### Features
+
+* add isBackward query parameter support for cursor pagination ([c1fd77c](https://github.com/TaeGyumKim/mock-fried/commit/c1fd77ca98679cfc23317a197051a52ec4bf22df))
+
+
+### Bug Fixes
+
+* remove invalid boolean comparison in query parameter check ([6d15549](https://github.com/TaeGyumKim/mock-fried/commit/6d1554971ae076cc47b78bbae1b4dc839f443b08))
+* resolve lint errors in test files ([b09eef7](https://github.com/TaeGyumKim/mock-fried/commit/b09eef7bc40008d51a596b35423f5cea42442ef8))
+
 ## [1.2.1](https://github.com/TaeGyumKim/mock-fried/compare/v1.2.0...v1.2.1) (2026-01-05)
 
 
