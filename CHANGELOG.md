@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/TaeGyumKim/mock-fried/compare/v1.2.0...v1.2.1) (2026-01-05)
+
+
+### Bug Fixes
+
+* support new openapi-generator format in client-parser ([1065e95](https://github.com/TaeGyumKim/mock-fried/commit/1065e9597fad4b097f0ae60dde51934ea5beed4d))
+
 ## [1.2.0](https://github.com/TaeGyumKim/mock-fried/compare/v1.1.2...v1.2.0) (2026-01-02)
 
 
