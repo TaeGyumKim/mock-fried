@@ -1141,6 +1141,12 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@mock-fried/openapi-client-v7@workspace:packages/openapi-client-v7":
+  version: 0.0.0-use.local
+  resolution: "@mock-fried/openapi-client-v7@workspace:packages/openapi-client-v7"
+  languageName: unknown
+  linkType: soft
+
 "@mock-fried/openapi-client@workspace:packages/openapi-client":
   version: 0.0.0-use.local
   resolution: "@mock-fried/openapi-client@workspace:packages/openapi-client"
