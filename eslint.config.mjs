@@ -13,6 +13,7 @@ export default createConfigForNuxt({
     src: [
       './playground-openapi',
       './playground-openapi-client',
+      './playground-openapi-client-v7',
       './playground-proto',
     ],
   },
