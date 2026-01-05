@@ -106,7 +106,7 @@ export interface MockOverrideConditional {
 | `src/types.ts` | MockOverrideConfig 타입 추가 |
 | `src/module.ts` | overrides 옵션 처리, 런타임 설정 전달 |
 | `src/runtime/server/utils/override-matcher.ts` | 신규: 오버라이드 매칭 로직 |
-| `src/runtime/server/handlers/openapi.ts` | 오버라이드 체크 후 응답 |
+| `src/runtime/server/handlers/openapi/index.ts` | 오버라이드 체크 후 응답 |
 | `src/runtime/server/handlers/rpc.ts` | Proto RPC 오버라이드 지원 |
 
 ### 구현 순서
@@ -254,7 +254,7 @@ export interface MockSimulationHeaders {
 | `src/module.ts` | scenarios 옵션 처리 |
 | `src/runtime/server/utils/scenario-manager.ts` | 신규: 시나리오 상태 관리 |
 | `src/runtime/server/handlers/scenario.ts` | 신규: /mock/__scenario 핸들러 |
-| `src/runtime/server/handlers/openapi.ts` | 시나리오/헤더 기반 에러 처리 |
+| `src/runtime/server/handlers/openapi/index.ts` | 시나리오/헤더 기반 에러 처리 |
 | `src/runtime/server/middleware/mock-headers.ts` | 신규: X-Mock-* 헤더 처리 |
 
 ### 구현 순서
@@ -278,7 +278,7 @@ export interface MockSimulationHeaders {
    - POST /mock/__scenario
 
 5. **핸들러 통합** (1시간)
-   - openapi.ts, rpc.ts에 시나리오 체크 추가
+   - openapi/index.ts, rpc.ts에 시나리오 체크 추가
 
 6. **테스트 작성** (1시간)
    - 시나리오 매니저 단위 테스트

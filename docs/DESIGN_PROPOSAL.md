@@ -422,7 +422,7 @@ export interface MockRuntimeConfigV2 {
 ### 2.2 핸들러 구현 (의사코드)
 
 ```typescript
-// src/runtime/server/handlers/openapi.ts
+// src/runtime/server/handlers/openapi/index.ts
 
 async function handleRequest(event: H3Event) {
   const config = useRuntimeConfig(event).mock

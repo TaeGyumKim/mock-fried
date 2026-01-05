@@ -26,11 +26,17 @@ mock-fried/
 │       ├── components/        # API Explorer 컴포넌트
 │       └── server/
 │           ├── handlers/      # Nitro 서버 핸들러
-│           │   ├── openapi.ts # OpenAPI Mock 핸들러 (메인)
+│           │   ├── openapi/   # OpenAPI Mock 핸들러 (모듈화)
+│           │   │   ├── index.ts      # 메인 라우터
+│           │   │   ├── spec-mode.ts  # Spec File Mode
+│           │   │   └── client-mode.ts # Client Package Mode
 │           │   ├── rpc.ts     # Proto RPC 핸들러
 │           │   ├── schema.ts  # 스키마 메타데이터
 │           │   └── reset.ts   # 캐시 초기화
 │           └── utils/
+│               ├── proto-utils.ts     # Proto 공유 유틸리티
+│               ├── cache-manager.ts   # 캐시 중앙 관리
+│               ├── pagination-factory.ts # Pagination 팩토리
 │               ├── mock/      # Mock 데이터 생성
 │               │   ├── client-generator.ts  # Client Package Mode Mock 생성
 │               │   ├── openapi-generator.ts # OpenAPI 스키마 기반 Mock 생성
@@ -63,10 +69,20 @@ mock-fried/
 
 | 파일 | 역할 | 엔드포인트 |
 |------|------|-----------|
-| `openapi.ts` | OpenAPI Mock 응답 생성 | `GET/POST/... /mock/**` |
+| `openapi/index.ts` | OpenAPI 메인 라우터 | `GET/POST/... /mock/**` |
+| `openapi/spec-mode.ts` | Spec File Mode 처리 | - |
+| `openapi/client-mode.ts` | Client Package Mode 처리 | - |
 | `rpc.ts` | Proto RPC Mock 응답 | `POST /mock/rpc/:service/:method` |
 | `schema.ts` | API 스키마 메타데이터 | `GET /mock/__schema` |
 | `reset.ts` | 캐시 초기화 | `POST /mock/__reset` |
+
+### 공유 유틸리티 (src/runtime/server/utils/)
+
+| 파일 | 역할 |
+|------|------|
+| `proto-utils.ts` | Proto 유틸 (PROTO_TYPE_MAP, findProtoFiles, getProtoTypeName) |
+| `cache-manager.ts` | 캐시 중앙 관리 (MockCacheManager 싱글톤) |
+| `pagination-factory.ts` | Pagination Manager 팩토리 함수 |
 
 ### Mock 유틸 (src/runtime/server/utils/mock/)
 
@@ -417,12 +433,14 @@ yarn test:watch                 # watch 모드
 
 | 테스트 파일 | 테스트 수 | 커버리지 |
 |------------|----------|---------|
-| `playground-openapi.e2e.test.ts` | 52 | Spec File Mode 100% (43 endpoints + 페이지 로딩) |
-| `playground-openapi-client.e2e.test.ts` | 54 | Client Package Mode 100% (43 endpoints + 페이지 로딩) |
-| `playground-proto.e2e.test.ts` | 60 | Proto RPC 100% (7 서비스 + 페이지 로딩) |
+| `playground-openapi.e2e.test.ts` | 76 | Spec File Mode 100% |
+| `playground-openapi-client.e2e.test.ts` | 78 | Client Package Mode 100% |
+| `playground-openapi-client-v7.e2e.test.ts` | 28 | openapi-generator v7 호환성 |
+| `playground-proto.e2e.test.ts` | 93 | Proto RPC 100% (7 서비스) |
 | `playground-proto-advanced.e2e.test.ts` | 37 | AdvancedService 심화 테스트 |
-| Unit tests | 61 | Core utilities |
-| **Total** | **264** | |
+| `refactored-utils.test.ts` | 26 | 공유 유틸리티 테스트 |
+| Other unit tests | 117 | Core utilities |
+| **Total** | **455** | |
 
 ### E2E 테스트 구성
 

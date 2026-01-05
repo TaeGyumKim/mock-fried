@@ -557,7 +557,7 @@ export class SpecMockGeneratorFactory {
 
 ### Step 6: 핸들러 통합
 
-**파일**: `src/runtime/server/handlers/openapi.ts` (수정)
+**파일**: `src/runtime/server/handlers/openapi/index.ts` (수정)
 
 ```typescript
 import { SpecMockGeneratorFactory } from '../utils/mock/generators'
@@ -581,25 +581,38 @@ export default defineEventHandler(async (event) => {
 ## 파일 구조
 
 ```
-src/runtime/server/utils/mock/
-├── interfaces/
-│   ├── index.ts
-│   ├── spec-generator.interface.ts     # ISpecMockGenerator
-│   └── types.ts                        # ParsedSpec, SchemaDefinition 등
-├── generators/
-│   ├── index.ts
-│   ├── abstract-generator.ts           # AbstractSpecMockGenerator
-│   ├── openapi3-generator.ts           # OpenAPI 3.x 구현
-│   ├── swagger2-generator.ts           # Swagger 2.0 구현
-│   └── generator-factory.ts            # Factory
-├── pagination/                          # 기존 유지 (변경 없음)
-│   ├── cursor-manager.ts
-│   ├── page-manager.ts
-│   └── ...
-├── providers/                           # 기존 유지 (리팩토링 대상)
-│   ├── schema-item-provider.ts
-│   └── openapi-item-provider.ts
-└── shared.ts                            # 공유 유틸 (hashString, seededRandom)
+src/runtime/server/
+├── handlers/
+│   ├── openapi/                         # OpenAPI 핸들러 (모듈화됨)
+│   │   ├── index.ts                     # 메인 라우터
+│   │   ├── spec-mode.ts                 # Spec File Mode
+│   │   └── client-mode.ts               # Client Package Mode
+│   ├── rpc.ts
+│   ├── schema.ts
+│   └── reset.ts
+└── utils/
+    ├── proto-utils.ts                   # Proto 공유 유틸
+    ├── cache-manager.ts                 # 캐시 중앙 관리
+    ├── pagination-factory.ts            # Pagination 팩토리
+    └── mock/
+        ├── interfaces/
+        │   ├── index.ts
+        │   ├── spec-generator.interface.ts  # ISpecMockGenerator
+        │   └── types.ts                     # ParsedSpec, SchemaDefinition 등
+        ├── generators/
+        │   ├── index.ts
+        │   ├── abstract-generator.ts        # AbstractSpecMockGenerator
+        │   ├── openapi3-generator.ts        # OpenAPI 3.x 구현
+        │   ├── swagger2-generator.ts        # Swagger 2.0 구현
+        │   └── generator-factory.ts         # Factory
+        ├── pagination/                      # 기존 유지 (변경 없음)
+        │   ├── cursor-manager.ts
+        │   ├── page-manager.ts
+        │   └── ...
+        ├── providers/                       # 기존 유지 (리팩토링 대상)
+        │   ├── schema-item-provider.ts
+        │   └── openapi-item-provider.ts
+        └── shared.ts                        # 공유 유틸 (hashString, seededRandom)
 ```
 
 ---
@@ -782,7 +795,7 @@ definitions:
 | 3 | OpenAPI 3.x Generator | `generators/openapi3-generator.ts` | 중간 |
 | 4 | Swagger 2.0 Generator | `generators/swagger2-generator.ts` | 중간 |
 | 5 | Factory | `generators/generator-factory.ts` | 낮음 |
-| 6 | 핸들러 통합 | `handlers/openapi.ts`, `handlers/schema.ts` | 중간 |
+| 6 | 핸들러 통합 | `handlers/openapi/spec-mode.ts`, `handlers/schema.ts` | 중간 |
 | 7 | 샘플 패키지 | `packages/sample-swagger/` | 낮음 |
 | 8 | Playground | `playground-swagger/` | 낮음 |
 | 9 | 단위 테스트 | `test/generators/*.test.ts` | 중간 |
@@ -804,7 +817,8 @@ definitions:
 
 ### 수정 파일
 
-- `src/runtime/server/handlers/openapi.ts`
+- `src/runtime/server/handlers/openapi/index.ts`
+- `src/runtime/server/handlers/openapi/spec-mode.ts`
 - `src/runtime/server/handlers/schema.ts`
 - `CLAUDE.md`
 
