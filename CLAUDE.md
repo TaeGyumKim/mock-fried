@@ -143,7 +143,7 @@ yarn prepack                # 빌드
 ```text
 lint → type-check
      ↘ build → test (unit)
-              ↘ e2e-test (matrix: openapi, openapi-client, proto, proto-advanced)
+              ↘ e2e-test (matrix: openapi, swagger, openapi-client, proto, proto-advanced)
               ↘ playground (빌드 검증)
 ```
 
@@ -252,7 +252,7 @@ npm install mock-fried@1.0.4
 | 패키지 | 용도 | 내용 |
 |--------|------|------|
 | `@mock-fried/sample-openapi` | OpenAPI 3.x Spec File Mode 테스트 | openapi.yaml (7 API 그룹, 43개 엔드포인트) |
-| `@mock-fried/sample-swagger` | Swagger 2.0 Spec File Mode 테스트 | swagger.yaml (6 API 그룹, 40개 엔드포인트) |
+| `@mock-fried/sample-swagger` | Swagger 2.0 Spec File Mode 테스트 | swagger.yaml (9 API 그룹, 50개 엔드포인트) |
 | `@mock-fried/openapi-client` | Client Package Mode 테스트 | openapi-generator 출력 (동일 스펙 기반) |
 | `@mock-fried/sample-proto` | Proto RPC 테스트용 | example.proto (7 서비스, 37 메서드) |
 
@@ -452,7 +452,7 @@ yarn test:watch                 # watch 모드
 | 테스트 파일 | 테스트 수 | 커버리지 |
 |------------|----------|---------|
 | `playground-openapi.e2e.test.ts` | 76 | OpenAPI 3.x Spec File Mode 100% |
-| `playground-swagger.e2e.test.ts` | 50 | Swagger 2.0 Spec File Mode 100% |
+| `playground-swagger.e2e.test.ts` | 68 | Swagger 2.0 Spec File Mode 100% |
 | `playground-openapi-client.e2e.test.ts` | 78 | Client Package Mode 100% |
 | `playground-openapi-client-v7.e2e.test.ts` | 28 | openapi-generator v7 호환성 |
 | `playground-proto.e2e.test.ts` | 93 | Proto RPC 100% (7 서비스) |
@@ -460,7 +460,7 @@ yarn test:watch                 # watch 모드
 | `spec-loader.test.ts` | 23 | 스펙 로더 유틸리티 테스트 |
 | `refactored-utils.test.ts` | 26 | 공유 유틸리티 테스트 |
 | Other unit tests | 117 | Core utilities |
-| **Total** | **528** | |
+| **Total** | **546** | |
 
 ### E2E 테스트 구성
 
