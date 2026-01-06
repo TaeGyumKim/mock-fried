@@ -73,7 +73,7 @@ export async function getOpenAPIBackend(specPath: string): Promise<any> {
   const { spec, openapi3Spec } = await getCachedSpecLoader(specPath)
 
   // 스키마 컨텍스트용 캐시 (원본 스펙)
-  cache.spec = spec as OpenAPISpec
+  cache.spec = spec as unknown as OpenAPISpec
 
   const apiInstance = new OpenAPIBackend({
     // OpenAPI 3.0 스펙 전달 (Swagger 2.0도 변환되어 사용)

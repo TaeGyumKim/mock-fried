@@ -186,7 +186,7 @@ async function parseOpenApiSpec(specPath: string): Promise<OpenApiSchema | undef
             summary: op.summary as string | undefined,
             description: op.description as string | undefined,
             tags: op.tags as string[] | undefined,
-            parameters: mergedParams.length > 0 ? mergedParams : undefined,
+            parameters: mergedParams.length > 0 ? mergedParams as unknown as OpenApiParameter[] : undefined,
             requestBody,
             responses,
           })
