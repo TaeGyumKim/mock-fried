@@ -16,7 +16,7 @@ import {
 } from '../../utils/mock/providers'
 import { cacheManager, type OpenAPISpec } from '../../utils/cache-manager'
 import { getOrCreateCursorManager, getOrCreatePageManager } from '../../utils/pagination-factory'
-import { loadSpec, getSchemaDefinitions, type SpecLoaderResult } from '../../utils/spec-loader'
+import { loadSpec, type SpecLoaderResult } from '../../utils/spec-loader'
 
 /**
  * 캐시된 스펙 로드 결과 가져오기

@@ -208,7 +208,7 @@ describe('Client Parser - JSDoc and Method Signature', () => {
      */
     async getAllBeforeAfterPostsRaw(requestParameters: GetAllBeforeAfterPostsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetAllBeforeAfterPosts200Response>> {
     `
-    const rawMethodRegex = /\/\*\*([\s\S]*?)\*\/[\t\v\f\r \xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*\n\s*async\s+(\w+)Raw\([^)]*\):\s*Promise<runtime\.ApiResponse<((?:[^<>]|<[^>]*>)+)>>/g
+    const rawMethodRegex = /\/\*\*([\s\S]*?)\*\/[\t\v\f\r \xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*\n\s*async\s+(\w+)Raw\([^)]*\):\s*Promise<runtime\.ApiResponse<((?:[^<>]|<[^>]*>)+)>>/
     const match = rawMethodRegex.exec(content)
 
     expect(match).not.toBeNull()
@@ -223,7 +223,7 @@ describe('Client Parser - JSDoc and Method Signature', () => {
      */
     async listUserRoutinesRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<RoutineListResponseResponse>> {
     `
-    const rawMethodRegex = /\/\*\*([\s\S]*?)\*\/[\t\v\f\r \xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*\n\s*async\s+(\w+)Raw\([^)]*\):\s*Promise<runtime\.ApiResponse<((?:[^<>]|<[^>]*>)+)>>/g
+    const rawMethodRegex = /\/\*\*([\s\S]*?)\*\/[\t\v\f\r \xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*\n\s*async\s+(\w+)Raw\([^)]*\):\s*Promise<runtime\.ApiResponse<((?:[^<>]|<[^>]*>)+)>>/
     const match = rawMethodRegex.exec(content)
 
     expect(match).not.toBeNull()
@@ -238,7 +238,7 @@ describe('Client Parser - JSDoc and Method Signature', () => {
      */
     async deleteRoutineRaw(requestParameters: DeleteRoutineRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
     `
-    const rawMethodRegex = /\/\*\*([\s\S]*?)\*\/[\t\v\f\r \xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*\n\s*async\s+(\w+)Raw\([^)]*\):\s*Promise<runtime\.ApiResponse<((?:[^<>]|<[^>]*>)+)>>/g
+    const rawMethodRegex = /\/\*\*([\s\S]*?)\*\/[\t\v\f\r \xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*\n\s*async\s+(\w+)Raw\([^)]*\):\s*Promise<runtime\.ApiResponse<((?:[^<>]|<[^>]*>)+)>>/
     const match = rawMethodRegex.exec(content)
 
     expect(match).not.toBeNull()
@@ -253,7 +253,7 @@ describe('Client Parser - JSDoc and Method Signature', () => {
      */
     async getTagsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<string>>> {
     `
-    const rawMethodRegex = /\/\*\*([\s\S]*?)\*\/[\t\v\f\r \xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*\n\s*async\s+(\w+)Raw\([^)]*\):\s*Promise<runtime\.ApiResponse<((?:[^<>]|<[^>]*>)+)>>/g
+    const rawMethodRegex = /\/\*\*([\s\S]*?)\*\/[\t\v\f\r \xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*\n\s*async\s+(\w+)Raw\([^)]*\):\s*Promise<runtime\.ApiResponse<((?:[^<>]|<[^>]*>)+)>>/
     const match = rawMethodRegex.exec(content)
 
     expect(match).not.toBeNull()
