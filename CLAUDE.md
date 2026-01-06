@@ -561,6 +561,33 @@ yarn install
 yarn dev:prepare:playground
 ```
 
+
+### Node 프로세스 정리
+
+테스트 실행 후 Node 프로세스가 남아있을 수 있음. 메모리 확보를 위해 정리:
+
+**PowerShell (Windows):**
+
+```powershell
+Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force
+```
+
+**Bash (Linux/macOS):**
+
+```bash
+pkill -f node || true
+```
+
+**확인:**
+
+```bash
+# Windows
+tasklist | findstr "node"
+
+# Linux/macOS
+ps aux | grep node
+```
+
 ### openapi-generator oneOf 빈 타입 버그
 
 openapi-generator가 `oneOf`를 빈 타입으로 생성하는 경우가 있음:
