@@ -506,6 +506,39 @@ npm publish --access public  # npm 게시
 4. **캐시**: 개발 중 설정 변경 시 `POST /mock/__reset` 호출 필요
 5. **CI 빌드**: `yarn dev:prepare` 후 `yarn prepack` 실행 필요 (tsconfig.json이 .nuxt 참조)
 
+
+## 코드 변경 전 CI 검증 (필수)
+
+코드 변경 후 커밋 전에 반드시 다음 검증을 수행:
+
+```bash
+yarn lint             # ESLint 검사
+npx vue-tsc --noEmit  # TypeScript 타입 검사
+yarn test:unit        # 단위 테스트 (선택)
+```
+
+### 자주 발생하는 CI 오류
+
+| 오류 유형 | 원인 | 해결 방법 |
+|----------|------|----------|
+| `is defined but never used` | 미사용 import | import 제거 또는 `_` prefix 추가 |
+| `Component name should be multi-word` | Vue 컴포넌트 이름 규칙 | `<!-- eslint-disable vue/multi-word-component-names -->` 추가 |
+| `Type X is not assignable to type Y` | 타입 불일치 | `as unknown as TargetType` 사용 |
+| `The 'g' flag is unnecessary` | regex exec 단일 실행 시 | `/g` 플래그 제거 |
+| `Unexpected console statement` | console.log 사용 | 의도적 로그는 경고로 허용 |
+
+### 타입 변환 시 주의
+
+OpenAPI 타입 간 변환 시 직접 캐스팅이 안 되는 경우:
+
+```typescript
+// ❌ 오류: Type 'A' is not assignable to type 'B'
+const value = sourceValue as TargetType
+
+// ✅ 해결: unknown을 거쳐 변환
+const value = sourceValue as unknown as TargetType
+```
+
 ## 트러블슈팅
 
 ### 캐시 정리 (개발 환경 초기화)
