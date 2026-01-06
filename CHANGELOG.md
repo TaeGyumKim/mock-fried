@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.4.0](https://github.com/TaeGyumKim/mock-fried/compare/v1.3.1...v1.4.0) (2026-01-06)
+
+
+### Features
+
+* add Swagger 2.0 spec file support ([533879a](https://github.com/TaeGyumKim/mock-fried/commit/533879a103ca96bf43fbccd05450da64a1772448))
+* sync Swagger 2.0 spec with OpenAPI 3.x parity ([7192a0a](https://github.com/TaeGyumKim/mock-fried/commit/7192a0aa1f6d10685f7409f5eae8bb2ae3161f43))
+
+
+### Bug Fixes
+
+* resolve lint errors ([8f6a096](https://github.com/TaeGyumKim/mock-fried/commit/8f6a096715934bdb9fffc6d3de2f1bbe7cda0997))
+* resolve type-check errors ([d4595ad](https://github.com/TaeGyumKim/mock-fried/commit/d4595adaa4de819289bf6920c35d24282b439e38))
+
 ## [1.3.1](https://github.com/TaeGyumKim/mock-fried/compare/v1.3.0...v1.3.1) (2026-01-05)
 
 
