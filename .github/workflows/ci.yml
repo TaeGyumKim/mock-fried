@@ -123,6 +123,8 @@ jobs:
         playground:
           - name: openapi
             test-file: test/e2e/playground-openapi.e2e.test.ts
+          - name: swagger
+            test-file: test/e2e/playground-swagger.e2e.test.ts
           - name: openapi-client
             test-file: test/e2e/playground-openapi-client.e2e.test.ts
           - name: proto
@@ -185,6 +187,9 @@ jobs:
 
       - name: Build playground-openapi (Spec File Mode)
         run: yarn dev:build
+
+      - name: Build playground-swagger (Swagger 2.0 Mode)
+        run: yarn dev:build:swagger
 
       - name: Build playground-openapi-client (Client Package Mode)
         run: yarn dev:build:openapi-client
