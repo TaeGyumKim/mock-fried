@@ -7021,6 +7021,8 @@ __metadata:
     ufo: "npm:^1.6.1"
     vitest: "npm:^4.0.16"
     vue-tsc: "npm:^3.2.1"
+  peerDependencies:
+    "@nuxt/kit": ">=3.0.0"
   languageName: unknown
   linkType: soft
 

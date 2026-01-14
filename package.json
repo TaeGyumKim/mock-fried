@@ -64,11 +64,13 @@
     "test:e2e:proto-advanced": "vitest run test/e2e/playground-proto-advanced.e2e.test.ts",
     "test:types": "vue-tsc --noEmit"
   },
+  "peerDependencies": {
+    "@nuxt/kit": ">=3.0.0"
+  },
   "dependencies": {
     "@apidevtools/swagger-parser": "^12.1.0",
     "@grpc/grpc-js": "^1.12.0",
     "@grpc/proto-loader": "^0.7.13",
-    "@nuxt/kit": "^4.2.2",
     "consola": "^3.4.2",
     "js-yaml": "^4.1.0",
     "openapi-backend": "^5.10.6",
@@ -79,6 +81,7 @@
   "devDependencies": {
     "@nuxt/devtools": "^3.1.1",
     "@nuxt/eslint-config": "^1.12.1",
+    "@nuxt/kit": "^4.2.2",
     "@nuxt/module-builder": "^1.0.2",
     "@nuxt/schema": "^4.2.2",
     "@nuxt/test-utils": "^3.21.0",
