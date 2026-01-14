@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/TaeGyumKim/mock-fried/compare/v1.4.0...v1.4.1) (2026-01-14)
+
+
+### Bug Fixes
+
+* move @nuxt/kit to peerDependencies for Nuxt 3 compatibility ([debd0b7](https://github.com/TaeGyumKim/mock-fried/commit/debd0b71df707ca44995551d35d914c40265a590))
+
 ## [1.4.0](https://github.com/TaeGyumKim/mock-fried/compare/v1.3.1...v1.4.0) (2026-01-06)
 
 
