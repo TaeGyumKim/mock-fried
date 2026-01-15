@@ -127,10 +127,15 @@ jobs:
             test-file: test/e2e/playground-swagger.e2e.test.ts
           - name: openapi-client
             test-file: test/e2e/playground-openapi-client.e2e.test.ts
+          - name: openapi-client-v7
+            test-file: test/e2e/playground-openapi-client-v7.e2e.test.ts
           - name: proto
             test-file: test/e2e/playground-proto.e2e.test.ts
           - name: proto-advanced
             test-file: test/e2e/playground-proto-advanced.e2e.test.ts
+        test-mode:
+          - dev
+          - production
 
     steps:
       - uses: actions/checkout@v4
@@ -155,8 +160,12 @@ jobs:
       - name: Prepare
         run: yarn dev:prepare
 
-      - name: Run E2E Tests (${{ matrix.playground.name }})
+      - name: Run E2E Tests (${{ matrix.playground.name }} - ${{ matrix.test-mode }})
+        # Spec File Mode (non-client) production tests are allowed to fail (known Nitro bundling issue)
+        continue-on-error: ${{ matrix.test-mode == 'production' && !contains(matrix.playground.name, 'client') }}
         run: yarn vitest run ${{ matrix.playground.test-file }}
+        env:
+          TEST_MODE: ${{ matrix.test-mode }}
 
   playground:
     runs-on: ubuntu-latest
