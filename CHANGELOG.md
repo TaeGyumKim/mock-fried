@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.5.0](https://github.com/TaeGyumKim/mock-fried/compare/v1.4.1...v1.5.0) (2026-01-15)
+
+
+### Features
+
+* add JavaScript file parsing support for client packages ([43014f1](https://github.com/TaeGyumKim/mock-fried/commit/43014f1a55a2a0232de4d8c3a71da43275f3a073))
+* add TEST_MODE support and fix false positive in E2E tests ([be0cf79](https://github.com/TaeGyumKim/mock-fried/commit/be0cf798050f0e1d5701855a372685431e684b8c))
+
+
+### Bug Fixes
+
+* resolve Nitro bundling issue with async-function ESM exports ([4a9c331](https://github.com/TaeGyumKim/mock-fried/commit/4a9c3319629e0b168f9ed52f3b2588ea6ed369e9))
+
 ## [1.4.1](https://github.com/TaeGyumKim/mock-fried/compare/v1.4.0...v1.4.1) (2026-01-14)
 
 
