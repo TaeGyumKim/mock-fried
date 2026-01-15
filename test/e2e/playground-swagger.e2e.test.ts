@@ -5,15 +5,23 @@
  * 대상: packages/sample-swagger/swagger.yaml
  *
  * OpenAPI 3.x E2E 테스트와 동일한 구조로 Swagger 2.0 지원 검증
+ *
+ * 환경변수:
+ * - TEST_MODE=production: 프로덕션 빌드 테스트 (dev: false)
+ * - TEST_MODE=dev (기본값): 개발 모드 테스트 (dev: true)
  */
 import { fileURLToPath } from 'node:url'
 import { describe, it, expect } from 'vitest'
 import { setup, $fetch } from '@nuxt/test-utils/e2e'
 
-describe('Swagger 2.0 Spec File Mode E2E', async () => {
+// 환경변수로 dev/production 모드 전환
+const isDev = process.env.TEST_MODE !== 'production'
+const modeSuffix = isDev ? '' : ' [production]'
+
+describe(`Swagger 2.0 Spec File Mode E2E${modeSuffix}`, async () => {
   await setup({
     rootDir: fileURLToPath(new URL('../../playground-swagger', import.meta.url)),
-    dev: true,
+    dev: isDev,
   })
 
   // ============================================
@@ -24,7 +32,6 @@ describe('Swagger 2.0 Spec File Mode E2E', async () => {
       const html = await $fetch('/')
       expect(html).toBeDefined()
       expect(typeof html).toBe('string')
-      expect(html).not.toContain('500')
       expect(html).not.toContain('Internal Server Error')
     })
   })

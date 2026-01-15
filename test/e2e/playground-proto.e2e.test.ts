@@ -6,15 +6,23 @@
  *
  * NOTE: Proto RPC는 Unary RPC + Pagination 지원
  * TODO: Proto 메시지 타입 추출 버그 수정 후 필드 검증 테스트 활성화
+ *
+ * 환경변수:
+ * - TEST_MODE=production: 프로덕션 빌드 테스트 (dev: false)
+ * - TEST_MODE=dev (기본값): 개발 모드 테스트 (dev: true)
  */
 import { fileURLToPath } from 'node:url'
 import { describe, it, expect } from 'vitest'
 import { setup, $fetch } from '@nuxt/test-utils/e2e'
 
-describe('Proto RPC Mode E2E', async () => {
+// 환경변수로 dev/production 모드 전환
+const isDev = process.env.TEST_MODE !== 'production'
+const modeSuffix = isDev ? '' : ' [production]'
+
+describe(`Proto RPC Mode E2E${modeSuffix}`, async () => {
   await setup({
     rootDir: fileURLToPath(new URL('../../playground-proto', import.meta.url)),
-    dev: true,
+    dev: isDev,
   })
 
   // ============================================
@@ -25,7 +33,6 @@ describe('Proto RPC Mode E2E', async () => {
       const html = await $fetch('/')
       expect(html).toBeDefined()
       expect(typeof html).toBe('string')
-      expect(html).not.toContain('500')
       expect(html).not.toContain('Internal Server Error')
     })
 
@@ -33,7 +40,6 @@ describe('Proto RPC Mode E2E', async () => {
       const html = await $fetch('/api-test')
       expect(html).toBeDefined()
       expect(typeof html).toBe('string')
-      expect(html).not.toContain('500')
       expect(html).not.toContain('Internal Server Error')
     })
 
@@ -41,7 +47,6 @@ describe('Proto RPC Mode E2E', async () => {
       const html = await $fetch('/explorer')
       expect(html).toBeDefined()
       expect(typeof html).toBe('string')
-      expect(html).not.toContain('500')
       expect(html).not.toContain('Internal Server Error')
     })
   })

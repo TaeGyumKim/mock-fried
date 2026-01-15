@@ -211,6 +211,35 @@ export default defineNuxtModule<MockModuleOptions>({
       prefix,
     }
 
+    // Nitro 번들링 설정: 문제 패키지들을 external로 처리
+    // async-function ESM export condition 이슈로 인해 번들링 시 실패하는 패키지들
+    nuxt.hook('nitro:config', (nitroConfig) => {
+      // Spec File Mode 사용 시에만 external 설정 추가
+      if (openapiPath) {
+        nitroConfig.externals = nitroConfig.externals || {}
+        nitroConfig.externals.external = nitroConfig.externals.external || []
+
+        const externalPackages = [
+          'openapi-backend',
+          '@apidevtools/swagger-parser',
+          'swagger2openapi',
+          // 의존성 체인의 문제 패키지들
+          'qs',
+          'ajv',
+          'get-intrinsic',
+          'async-function',
+        ]
+
+        for (const pkg of externalPackages) {
+          if (!nitroConfig.externals.external.includes(pkg)) {
+            nitroConfig.externals.external.push(pkg)
+          }
+        }
+
+        logger.info(`Nitro externals configured for Spec File Mode: ${externalPackages.join(', ')}`)
+      }
+    })
+
     // 스키마 핸들러 등록 (가장 먼저 - 구체적인 라우트)
     addServerHandler({
       route: `${prefix}/__schema`,

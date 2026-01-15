@@ -64,8 +64,13 @@ jobs:
       - name: Test (Unit)
         run: yarn test:unit
 
-      - name: Test (E2E)
+      - name: Test (E2E - Dev)
         run: yarn test:e2e
+
+      - name: Test (E2E - Client Package Production)
+        run: |
+          TEST_MODE=production yarn vitest run test/e2e/playground-openapi-client.e2e.test.ts
+          TEST_MODE=production yarn vitest run test/e2e/playground-openapi-client-v7.e2e.test.ts
 
       - name: Publish to npm
         run: npm publish --provenance --access public

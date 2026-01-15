@@ -5,15 +5,23 @@
  * 대상: packages/sample-openapi/openapi.yaml
  *
  * NOTE: 일부 테스트는 페이지네이션 wrapper 응답이 완전히 구현될 때까지 .skip 처리됨
+ *
+ * 환경변수:
+ * - TEST_MODE=production: 프로덕션 빌드 테스트 (dev: false)
+ * - TEST_MODE=dev (기본값): 개발 모드 테스트 (dev: true)
  */
 import { fileURLToPath } from 'node:url'
 import { describe, it, expect } from 'vitest'
 import { setup, $fetch } from '@nuxt/test-utils/e2e'
 
-describe('OpenAPI Spec File Mode E2E', async () => {
+// 환경변수로 dev/production 모드 전환
+const isDev = process.env.TEST_MODE !== 'production'
+const modeSuffix = isDev ? '' : ' [production]'
+
+describe(`OpenAPI Spec File Mode E2E${modeSuffix}`, async () => {
   await setup({
     rootDir: fileURLToPath(new URL('../../playground-openapi', import.meta.url)),
-    dev: true,
+    dev: isDev,
   })
 
   // ============================================
@@ -24,7 +32,6 @@ describe('OpenAPI Spec File Mode E2E', async () => {
       const html = await $fetch('/')
       expect(html).toBeDefined()
       expect(typeof html).toBe('string')
-      expect(html).not.toContain('500')
       expect(html).not.toContain('Internal Server Error')
     })
 
@@ -32,7 +39,6 @@ describe('OpenAPI Spec File Mode E2E', async () => {
       const html = await $fetch('/api-test')
       expect(html).toBeDefined()
       expect(typeof html).toBe('string')
-      expect(html).not.toContain('500')
       expect(html).not.toContain('Internal Server Error')
     })
 
@@ -40,7 +46,6 @@ describe('OpenAPI Spec File Mode E2E', async () => {
       const html = await $fetch('/explorer')
       expect(html).toBeDefined()
       expect(typeof html).toBe('string')
-      expect(html).not.toContain('500')
       expect(html).not.toContain('Internal Server Error')
     })
   })

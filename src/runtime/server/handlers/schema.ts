@@ -19,7 +19,8 @@ import type {
 import { getClientPackage } from '../utils/client-parser'
 import { findProtoFiles, getProtoTypeName } from '../utils/proto-utils'
 import { cacheManager } from '../utils/cache-manager'
-import { loadSpec, getSchemaDefinitions, mergeParameters, type ParsedSpec } from '../utils/spec-loader'
+// spec-loader는 동적 import로 로드하여 Proto-only 환경에서 불필요한 번들링 방지
+import type { ParsedSpec } from '../utils/spec-loader'
 
 const logger = consola.withTag('mock-fried')
 
@@ -152,6 +153,8 @@ async function parseOpenApiSpec(specPath: string): Promise<OpenApiSchema | undef
   }
 
   try {
+    // 동적 import로 spec-loader 로드 (Proto-only 환경에서 번들링 최적화)
+    const { loadSpec, getSchemaDefinitions, mergeParameters } = await import('../utils/spec-loader')
     const { spec, version } = await loadSpec(specPath)
     const info = spec.info || {}
 

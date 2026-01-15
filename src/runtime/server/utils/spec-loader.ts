@@ -4,8 +4,10 @@
  * @apidevtools/swagger-parser를 사용하여 스펙 파일을 로드, 검증, dereference 처리
  * swagger2openapi를 사용하여 Swagger 2.0을 OpenAPI 3.0으로 변환
  * Swagger 2.0과 OpenAPI 3.x 모두 지원
+ *
+ * NOTE: SwaggerParser는 동적 import로 로드하여 Proto-only 환경에서
+ * 불필요한 의존성 번들링을 방지합니다.
  */
-import SwaggerParser from '@apidevtools/swagger-parser'
 import type { OpenAPIV2, OpenAPIV3 } from 'openapi-types'
 
 export type ParsedSpec = OpenAPIV2.Document | OpenAPIV3.Document
@@ -34,6 +36,9 @@ export interface SpecLoaderResult {
  * @param specPath 스펙 파일 경로 (YAML/JSON)
  */
 export async function loadSpec(specPath: string): Promise<SpecLoaderResult> {
+  // 동적 import로 swagger-parser 로드 (번들링 최적화)
+  const SwaggerParser = (await import('@apidevtools/swagger-parser')).default
+
   // 1. 파싱만 (검증 없이, 원본 보존)
   const spec = await SwaggerParser.parse(specPath) as ParsedSpec
 
