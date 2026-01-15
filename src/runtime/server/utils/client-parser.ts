@@ -1,6 +1,8 @@
 /**
  * OpenAPI 생성 클라이언트 패키지 파서
- * TypeScript로 생성된 API 클라이언트에서 엔드포인트 및 모델 정보를 추출
+ * TypeScript/JavaScript로 생성된 API 클라이언트에서 엔드포인트 및 모델 정보를 추출
+ * - .ts 파일 (소스) 및 .js 파일 (컴파일된) 모두 지원
+ * - src/ 디렉토리 없을 경우 dist/ 자동 fallback
  */
 /* eslint-disable regexp/no-super-linear-backtracking, regexp/optimal-quantifier-concatenation */
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
@@ -16,28 +18,36 @@ import type {
 
 /**
  * API 파일에서 엔드포인트 정보 추출
+ * .ts 및 .js 파일 모두 지원
  */
 function parseApiFile(filePath: string, fileName: string): ParsedEndpoint[] {
   const content = readFileSync(filePath, 'utf-8')
   const endpoints: ParsedEndpoint[] = []
+  const isJsFile = fileName.endsWith('.js')
 
-  // API 클래스명 추출
-  const classMatch = content.match(/export class (\w+Api)/)
-  const apiClassName = classMatch?.[1] || fileName.replace('.ts', '')
+  // API 클래스명 추출 - TS: export class, JS: class (exports는 별도)
+  const classMatch = content.match(/(?:export\s+)?class\s+(\w+Api)/)
+  const apiClassName = classMatch?.[1] || fileName.replace(/\.(ts|js)$/, '')
 
   // Raw 메서드 패턴 매칭 (openapi-generator 출력 형식)
-  // Promise<runtime.ApiResponse<Type>>
+  // TS: async methodRaw(): Promise<runtime.ApiResponse<Type>>
+  // JS: methodRaw() { return __awaiter(...) } - 타입 정보 없음
   // 멀티라인 JSDoc 지원: /** ... */ 전체를 캡처한 후 마지막 줄에서 summary 추출
   // 중첩된 제네릭 타입 지원: Array<Type> 형태를 올바르게 캡처
-  const rawMethodRegex = /\/\*\*([\s\S]*?)\*\/\s*\n\s*async\s+(\w+)Raw\([^)]*\):\s*Promise<runtime\.ApiResponse<((?:[^<>]|<[^>]*>)+)>>/g
+  const rawMethodRegexTS = /\/\*\*([\s\S]*?)\*\/\s*\n\s*async\s+(\w+)Raw\([^)]*\):\s*Promise<runtime\.ApiResponse<((?:[^<>]|<[^>]*>)+)>>/g
+  const rawMethodRegexJS = /\/\*\*([\s\S]*?)\*\/\s*\n\s*(\w+)Raw\s*\([^)]*\)\s*\{/g
 
   // 각 Raw 메서드의 본문에서 path, method 추출
   // openapi-generator 형식 1: return new runtime.JSONApiResponse(...)
   // openapi-generator 형식 2: return new runtime.VoidApiResponse(...)
-  const methodBodyRegex = /async\s+(\w+)Raw\([^)]*\)[^{]*\{([\s\S]*?)return new runtime\./g
+  // TS: async methodRaw(...) { ... }
+  // JS: methodRaw(...) { return __awaiter(...) }
+  const methodBodyRegexTS = /async\s+(\w+)Raw\([^)]*\)[^{]*\{([\s\S]*?)return new runtime\./g
+  const methodBodyRegexJS = /(\w+)Raw\s*\([^)]*\)\s*\{([\s\S]*?)return new runtime\./g
 
   let match
   const methodBodies = new Map<string, string>()
+  const methodBodyRegex = isJsFile ? methodBodyRegexJS : methodBodyRegexTS
 
   // 먼저 메서드 본문들을 수집
   while ((match = methodBodyRegex.exec(content)) !== null) {
@@ -49,13 +59,18 @@ function parseApiFile(filePath: string, fileName: string): ParsedEndpoint[] {
   }
 
   // JSDoc과 메서드 시그니처 매칭
+  // TS: JSDoc + async + 타입 정보 모두 캡처
+  // JS: JSDoc + 메서드명만 캡처 (타입 정보 없음)
+  const rawMethodRegex = isJsFile ? rawMethodRegexJS : rawMethodRegexTS
   rawMethodRegex.lastIndex = 0
   while ((match = rawMethodRegex.exec(content)) !== null) {
     const jsdocContent = match[1]
     const operationId = match[2]
-    const responseType = match[3]
+    // JS 파일은 타입 정보가 없으므로 'unknown' 사용
+    // TS 파일에서도 매치 실패 시 'unknown' 사용
+    const responseType = isJsFile ? 'unknown' : (match[3] || 'unknown')
 
-    if (!jsdocContent || !operationId || !responseType) continue
+    if (!jsdocContent || !operationId) continue
 
     // JSDoc에서 summary 추출 (마지막 * 라인 또는 첫 번째 의미있는 라인)
     const jsdocLines = jsdocContent.split('\n')
@@ -196,10 +211,11 @@ function analyzeType(rawType: string): {
 /**
  * 모델 파일에서 스키마 정보 추출
  * 3가지 전략 사용: 1) ToJSON 함수 파싱 2) FromJSONTyped 파싱 3) Interface 직접 파싱
+ * .ts 및 .js 파일 모두 지원
  */
 function parseModelFile(filePath: string, fileName: string): ParsedModelSchema | undefined {
   const content = readFileSync(filePath, 'utf-8')
-  const modelName = fileName.replace('.ts', '')
+  const modelName = fileName.replace(/\.(ts|js)$/, '')
 
   // Interface가 있는지 먼저 확인 (interface가 있으면 enum-only가 아님)
   const hasInterface = content.includes(`export interface ${modelName}`)
@@ -377,7 +393,59 @@ function parseModelFile(filePath: string, fileName: string): ParsedModelSchema |
 }
 
 /**
+ * 디렉토리 경로 해결 (src/ → dist/ fallback 지원)
+ */
+function resolveDir(packageRoot: string, configDir: string): string {
+  const primaryPath = resolve(packageRoot, configDir)
+  if (existsSync(primaryPath)) {
+    return primaryPath
+  }
+
+  // src/ 경로가 없으면 dist/로 fallback
+  if (configDir.startsWith('src/')) {
+    const distDir = configDir.replace(/^src\//, 'dist/')
+    const distPath = resolve(packageRoot, distDir)
+    if (existsSync(distPath)) {
+      return distPath
+    }
+  }
+
+  // dist/ 경로가 없으면 src/로 fallback (역방향)
+  if (configDir.startsWith('dist/')) {
+    const srcDir = configDir.replace(/^dist\//, 'src/')
+    const srcPath = resolve(packageRoot, srcDir)
+    if (existsSync(srcPath)) {
+      return srcPath
+    }
+  }
+
+  // 기본 경로 반환 (존재하지 않더라도)
+  return primaryPath
+}
+
+/**
+ * API/Model 파일 필터 (.ts, .js 지원, index 및 .d.ts 제외)
+ */
+function filterApiFiles(files: string[]): string[] {
+  return files.filter(f =>
+    (f.endsWith('Api.ts') || f.endsWith('Api.js'))
+    && !f.includes('index')
+    && !f.endsWith('.d.ts'),
+  )
+}
+
+function filterModelFiles(files: string[]): string[] {
+  return files.filter(f =>
+    (f.endsWith('.ts') || f.endsWith('.js'))
+    && !f.includes('index')
+    && !f.endsWith('.d.ts'),
+  )
+}
+
+/**
  * 클라이언트 패키지 전체 파싱
+ * - .ts 파일 (소스) 및 .js 파일 (컴파일된) 모두 지원
+ * - src/ 디렉토리 없을 경우 dist/ 자동 fallback
  */
 export function parseClientPackage(
   packageRoot: string,
@@ -386,8 +454,9 @@ export function parseClientPackage(
   const apisDir = config?.apisDir || 'src/apis'
   const modelsDir = config?.modelsDir || 'src/models'
 
-  const apisPath = resolve(packageRoot, apisDir)
-  const modelsPath = resolve(packageRoot, modelsDir)
+  // src/ → dist/ fallback 지원
+  const apisPath = resolveDir(packageRoot, apisDir)
+  const modelsPath = resolveDir(packageRoot, modelsDir)
 
   // 패키지 정보 읽기
   const pkgJsonPath = join(packageRoot, 'package.json')
@@ -406,10 +475,10 @@ export function parseClientPackage(
     }
   }
 
-  // API 파일들 파싱
+  // API 파일들 파싱 (.ts 및 .js 모두 지원)
   const endpoints: ParsedEndpoint[] = []
   if (existsSync(apisPath)) {
-    const apiFiles = readdirSync(apisPath).filter(f => f.endsWith('Api.ts') && f !== 'index.ts')
+    const apiFiles = filterApiFiles(readdirSync(apisPath))
     for (const file of apiFiles) {
       const filePath = join(apisPath, file)
       const parsed = parseApiFile(filePath, file)
@@ -417,10 +486,10 @@ export function parseClientPackage(
     }
   }
 
-  // Model 파일들 파싱
+  // Model 파일들 파싱 (.ts 및 .js 모두 지원)
   const models = new Map<string, ParsedModelSchema>()
   if (existsSync(modelsPath)) {
-    const modelFiles = readdirSync(modelsPath).filter(f => f.endsWith('.ts') && f !== 'index.ts')
+    const modelFiles = filterModelFiles(readdirSync(modelsPath))
     for (const file of modelFiles) {
       const filePath = join(modelsPath, file)
       const parsed = parseModelFile(filePath, file)
